@@ -28,7 +28,7 @@ import {
   KANBAN_STAGES,
   KanbanStage,
   InteractionType,
-} from '../types/crm';
+} from './crm';
 
 interface LeadDetailModalProps {
   lead: Lead | null;
