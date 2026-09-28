@@ -1,6 +1,0 @@
-{
-  "name": "TRUINEXA DIGITAL — CRM Interno",
-  "description": "CRM Interno de Prospecção, Atendimento, Funil Kanban, WhatsApp e Vendas da TRUINEXA DIGITAL.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
