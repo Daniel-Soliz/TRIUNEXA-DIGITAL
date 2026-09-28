@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { User } from './crm';
 import { crmFetch, supabase } from './supabaseApi';
+import { InstallAppButton } from './InstallAppButton';
 
 interface LoginViewProps {
   users: User[];
@@ -199,9 +200,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
       <div className="w-full max-w-5xl grid lg:grid-cols-[1.05fr_0.95fr] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
         <section className="p-8 sm:p-12">
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-11 h-11 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg">
-              T
-            </div>
+            <img
+              src={`${import.meta.env.BASE_URL}icons/truinexa-192.png`}
+              alt="TRUINEXA DIGITAL"
+              className="w-11 h-11 rounded-2xl object-cover shadow-sm"
+            />
             <div>
               <div className="font-bold tracking-tight">TRUINEXA DIGITAL</div>
               <div className="text-xs text-slate-500">CRM COMERCIAL</div>
@@ -216,6 +219,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
             <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
             <p className="mt-2 text-sm leading-6 text-slate-500">{subtitle}</p>
+
+            <div className="mt-4">
+              <InstallAppButton className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-2 hover:bg-slate-100 transition cursor-pointer" />
+              <p className="mt-2 text-[11px] text-slate-400">
+                Instale no celular e abra a TRUINEXA como aplicativo, sem precisar entrar pelo navegador.
+              </p>
+            </div>
 
             {error && (
               <div className="mt-5 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
