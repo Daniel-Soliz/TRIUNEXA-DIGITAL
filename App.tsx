@@ -13,8 +13,6 @@ import {
   Settings,
   Search,
   Plus,
-  Sun,
-  Moon,
   LogOut,
   TrendingUp,
   DollarSign,
@@ -63,6 +61,7 @@ import {
   ReportsModule,
   TeamAndSettingsModule,
 } from './ModulesView';
+import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supabaseApi';
 
 type NavTab =
   | 'dashboard'
@@ -98,7 +97,7 @@ export default function App() {
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [realtimePulse, setRealtimePulse] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
@@ -116,84 +115,137 @@ export default function App() {
   const [whatsAppLead, setWhatsAppLead] = useState<Lead | null>(null);
   const [appointmentLead, setAppointmentLead] = useState<Lead | null>(null);
 
-  // Initial state fetch & Real-time SSE connection (Section 24)
+  // Supabase bootstrap + Realtime
   useEffect(() => {
-    fetch('/api/state')
-      .then((r) => r.json())
-      .then((data: CRMState) => {
-        setBootError(null);
-        setCrmState(data);
-        const savedUserId = localStorage.getItem('truinexa_user_id');
-        if (savedUserId) {
-          const found = data.users.find((u) => u.id === savedUserId && u.status === 'active');
-          if (found) setCurrentUser(found);
-        }
-      })
-      .catch((err) => {
-        console.error('Initial state error:', err);
-        setBootError('O frontend foi carregado, mas o servidor do CRM ainda não está conectado a este endereço.');
-      });
+    let mounted = true;
 
-    const eventSource = new EventSource('/api/events');
-    eventSource.onmessage = (event) => {
+    const refreshState = async () => {
       try {
-        const parsed = JSON.parse(event.data);
-        if (parsed.state) {
-          setCrmState(parsed.state);
-          setRealtimePulse(new Date().toLocaleTimeString('pt-BR'));
+        const state = await loadCRMState();
+        if (!mounted) return;
+        setBootError(null);
+        setCrmState(state);
+
+        const { data } = await supabase.auth.getUser();
+        const authUser = data.user;
+        if (!authUser) {
+          setCurrentUser(null);
+          return;
         }
-      } catch {
-        // ignore parse errors
+
+        const profile = state.users.find((user) => user.id === authUser.id);
+        if (profile?.status === 'active') {
+          setCurrentUser(profile);
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (error) {
+        console.error('Supabase state error:', error);
+        if (mounted) {
+          setBootError('Não foi possível carregar o banco da TRUINEXA no Supabase.');
+          setCrmState((previous) => previous || {
+            users: [],
+            leads: [],
+            services: [],
+            interactions: [],
+            appointments: [],
+            notifications: [],
+            activityLogs: [],
+            projects: [],
+            whatsappTemplates: [],
+            config: {
+              distributionMode: 'capture',
+              roundRobinOrder: [],
+              lastAssignedIndex: 0,
+              whatsappMode: 'common',
+              whatsappBusinessConfig: {
+                phoneNumberId: '',
+                businessAccountId: '',
+                displayPhoneNumber: '',
+                webhookVerifyToken: '',
+                connected: false,
+                autoStageUpdateOnReply: true,
+                autoFollowUpDays: 2,
+              },
+              stalledAlertDays: 2,
+            },
+          });
+        }
       }
     };
 
+    void refreshState();
+
+    const unsubscribeRealtime = subscribeToCRMChanges(() => {
+      setRealtimePulse(new Date().toLocaleTimeString('pt-BR'));
+      void refreshState();
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => {
+        void refreshState();
+      }, 0);
+    });
+
     return () => {
-      eventSource.close();
+      mounted = false;
+      unsubscribeRealtime();
+      authListener.subscription.unsubscribe();
     };
   }, []);
 
-  // Keep currentUser synced with latest permissions/status from server
+  // Keep current user synced with Supabase profile status/permissions
   useEffect(() => {
-    if (crmState && currentUser) {
-      const updated = crmState.users.find((u) => u.id === currentUser.id);
-      if (updated) {
-        if (updated.status === 'inactive') {
-          setCurrentUser(null);
-          localStorage.removeItem('truinexa_user_id');
-        } else {
-          setCurrentUser(updated);
-        }
-      }
+    if (!crmState || !currentUser) return;
+    const updated = crmState.users.find((user) => user.id === currentUser.id);
+    if (!updated || updated.status === 'inactive') {
+      setCurrentUser(null);
+      void supabase.auth.signOut();
+      return;
     }
+    setCurrentUser(updated);
   }, [crmState]);
 
-  const handleLoginSuccess = (user: User, token: string) => {
+  const handleLoginSuccess = async (user: User, _token: string) => {
     setCurrentUser(user);
-    localStorage.setItem('truinexa_user_id', user.id);
-    localStorage.setItem('truinexa_token', token);
+    try {
+      const state = await loadCRMState();
+      setCrmState(state);
+    } catch (error) {
+      console.error('Failed to refresh CRM after login:', error);
+    }
   };
 
   const handleLogout = async () => {
-    if (currentUser) {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id }),
-      });
-    }
+    await crmFetch('/api/auth/logout', { method: 'POST' });
     setCurrentUser(null);
-    localStorage.removeItem('truinexa_user_id');
-    localStorage.removeItem('truinexa_token');
-  };
-
-  // Switch active user quickly for testing Daniel, Arthur, Pedro permissions
-  const handleQuickSwitchUser = (userId: string) => {
-    if (!crmState) return;
-    const target = crmState.users.find((u) => u.id === userId && u.status === 'active');
-    if (target) {
-      setCurrentUser(target);
-      localStorage.setItem('truinexa_user_id', target.id);
-    }
+    setCrmState({
+      users: [],
+      leads: [],
+      services: [],
+      interactions: [],
+      appointments: [],
+      notifications: [],
+      activityLogs: [],
+      projects: [],
+      whatsappTemplates: [],
+      config: crmState?.config || {
+        distributionMode: 'capture',
+        roundRobinOrder: [],
+        lastAssignedIndex: 0,
+        whatsappMode: 'common',
+        whatsappBusinessConfig: {
+          phoneNumberId: '',
+          businessAccountId: '',
+          displayPhoneNumber: '',
+          webhookVerifyToken: '',
+          connected: false,
+          autoStageUpdateOnReply: true,
+          autoFollowUpDays: 2,
+        },
+        stalledAlertDays: 2,
+      },
+    });
   };
 
   // Filtered Leads according to User Role Permissions + Search + Quick Filters
@@ -300,7 +352,7 @@ export default function App() {
   // API Handlers
   const handleCreateLead = async (leadData: Partial<Lead>) => {
     if (!currentUser) return;
-    await fetch('/api/leads', {
+    await crmFetch('/api/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, leadData }),
@@ -309,7 +361,7 @@ export default function App() {
 
   const handleUpdateLead = async (leadId: string, updates: Partial<Lead>) => {
     if (!currentUser) return;
-    await fetch(`/api/leads/${leadId}`, {
+    await crmFetch(`/api/leads/${leadId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, updates }),
@@ -338,7 +390,7 @@ export default function App() {
 
   const handleConfirmCloseDeal = async (leadId: string, closedDetails: ClosedDealDetails) => {
     if (!currentUser) return;
-    await fetch(`/api/leads/${leadId}/close`, {
+    await crmFetch(`/api/leads/${leadId}/close`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, closedDetails }),
@@ -347,7 +399,7 @@ export default function App() {
 
   const handleConfirmLostDeal = async (leadId: string, lostDetails: LostDetails) => {
     if (!currentUser) return;
-    await fetch(`/api/leads/${leadId}/lost`, {
+    await crmFetch(`/api/leads/${leadId}/lost`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, lostDetails }),
@@ -356,7 +408,7 @@ export default function App() {
 
   const handleDeleteLeadPermanently = async (leadId: string) => {
     if (!currentUser) return;
-    await fetch(`/api/leads/${leadId}?actorId=${currentUser.id}`, {
+    await crmFetch(`/api/leads/${leadId}?actorId=${currentUser.id}`, {
       method: 'DELETE',
     });
   };
@@ -368,7 +420,7 @@ export default function App() {
     autoAdvanceStage?: KanbanStage
   ) => {
     if (!currentUser) return;
-    await fetch('/api/interactions', {
+    await crmFetch('/api/interactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -391,7 +443,7 @@ export default function App() {
     notes: string;
   }) => {
     if (!currentUser) return;
-    await fetch('/api/appointments', {
+    await crmFetch('/api/appointments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, appointment }),
@@ -403,7 +455,7 @@ export default function App() {
     status: 'pendente' | 'concluido' | 'cancelado'
   ) => {
     if (!currentUser) return;
-    await fetch(`/api/appointments/${id}`, {
+    await crmFetch(`/api/appointments/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, status }),
@@ -412,7 +464,7 @@ export default function App() {
 
   const handleAddService = async (service: Partial<ServiceItem>) => {
     if (!currentUser) return;
-    await fetch('/api/services', {
+    await crmFetch('/api/services', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, service }),
@@ -421,7 +473,7 @@ export default function App() {
 
   const handleUpdateService = async (id: string, updates: Partial<ServiceItem>) => {
     if (!currentUser) return;
-    await fetch(`/api/services/${id}`, {
+    await crmFetch(`/api/services/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, updates }),
@@ -430,7 +482,7 @@ export default function App() {
 
   const handleUpdateProjectStage = async (projectId: string, stage: ProjectStage) => {
     if (!currentUser) return;
-    await fetch(`/api/projects/${projectId}`, {
+    await crmFetch(`/api/projects/${projectId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, updates: { stage } }),
@@ -443,7 +495,7 @@ export default function App() {
     resetTempPassword?: string
   ) => {
     if (!currentUser) return;
-    await fetch(`/api/users/${userId}`, {
+    await crmFetch(`/api/users/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, updates, resetTempPassword }),
@@ -452,7 +504,7 @@ export default function App() {
 
   const handleUpdateConfig = async (configUpdates: Partial<CRMState['config']>) => {
     if (!currentUser) return;
-    await fetch('/api/config', {
+    await crmFetch('/api/config', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ actorId: currentUser.id, configUpdates }),
@@ -461,7 +513,7 @@ export default function App() {
 
   const handleMarkNotificationsRead = async (notificationId: string | 'all') => {
     if (!currentUser) return;
-    await fetch('/api/notifications/read', {
+    await crmFetch('/api/notifications/read', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: currentUser.id, notificationId }),
@@ -480,13 +532,13 @@ export default function App() {
               TRUINEXA DIGITAL
             </p>
             <h1 className="mt-2 text-2xl font-display font-bold text-slate-900">
-              CRM carregado. Backend pendente de conexão.
+              CRM conectado ao Supabase.
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               {bootError}
             </p>
             <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
-              O código do aplicativo está compilando corretamente. O GitHub Pages hospeda apenas o frontend e não executa o servidor Node/Express necessário para login, carteira, tempo real e automações.
+              O CRM usa Supabase para autenticação, banco de dados e sincronização em tempo real.
             </div>
             <button
               onClick={() => window.location.reload()}
@@ -662,28 +714,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quick Role Switcher for immediate inspection of Daniel, Arthur, Pedro */}
-          <div className="mt-3 pt-2.5 border-t border-slate-800/80">
-            <span className="text-[10px] font-mono uppercase text-slate-500 block mb-1.5">
-              Alternar Sessão Ativa:
-            </span>
-            <div className="grid grid-cols-3 gap-1">
-              {crmState.users.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => handleQuickSwitchUser(u.id)}
-                  disabled={u.status === 'inactive'}
-                  className={`py-1 px-1.5 rounded text-[11px] font-medium transition cursor-pointer ${
-                    currentUser.id === u.id
-                      ? 'bg-indigo-600 text-white font-semibold'
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-                  } ${u.status === 'inactive' ? 'opacity-40 not-allowed' : ''}`}
-                >
-                  {u.name}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Navigation Links */}
@@ -837,14 +867,7 @@ export default function App() {
                 )}
               </button>
 
-              {/* Light / Dark Mode Toggle */}
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                title={darkMode ? 'Alternar para Tema Claro' : 'Alternar para Tema Escuro'}
-                className="p-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-300 hover:text-white cursor-pointer"
-              >
-                {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-              </button>
+
             </div>
           </div>
 
