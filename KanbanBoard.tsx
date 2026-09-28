@@ -245,14 +245,25 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <button
-                          type="button"
-                          onClick={() => onOpenWhatsApp(lead)}
-                          className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
-                        >
-                          <MessageSquare className="w-3 h-3" />
-                          <span>WhatsApp</span>
-                        </button>
+                        {lead.responsibleId ? (
+                          <button
+                            type="button"
+                            onClick={() => onOpenWhatsApp(lead)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            <span>Roteiro / WhatsApp</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onClaimLead(lead)}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                          >
+                            <Hand className="w-3 h-3" />
+                            <span>Assumir</span>
+                          </button>
+                        )}
 
                         <select
                           value={lead.stage}
