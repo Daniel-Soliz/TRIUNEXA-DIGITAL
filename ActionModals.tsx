@@ -27,7 +27,7 @@ import {
   WhatsAppTemplate,
   ServiceCategory,
   AppointmentType,
-} from '../types/crm';
+} from './crm';
 
 /* ============================================================================
    1. NEW LEAD MODAL (Section 4)
