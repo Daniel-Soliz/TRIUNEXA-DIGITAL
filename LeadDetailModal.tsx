@@ -87,6 +87,9 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   const leadInteractions = interactions.filter((i) => i.leadId === lead.id);
   const stageMeta = KANBAN_STAGES.find((s) => s.id === lead.stage) || KANBAN_STAGES[0];
   const canDelete = currentUser.role === 'admin' || currentUser.permissions.canDeleteLeads;
+  const canContact =
+    Boolean(lead.responsibleId) &&
+    (lead.responsibleId === currentUser.id || currentUser.role === 'admin');
 
   const handleSaveEdits = async () => {
     await onUpdateLead(lead.id, formState);
@@ -133,17 +136,6 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
 
     await onAddInteraction(lead.id, noteType, finalMessage, autoStage);
     setNoteText('');
-  };
-
-  const handleDirectCall = async () => {
-    await onAddInteraction(
-      lead.id,
-      'ligacao',
-      `Iniciou chamada telefônica para ${lead.phone}`,
-      lead.stage === 'NOVOS LEADS' || lead.stage === 'AGUARDANDO CONTATO'
-        ? 'CONTATO REALIZADO'
-        : undefined
-    );
   };
 
   const handleDirectEmail = async () => {
@@ -215,45 +207,73 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
           </div>
         </div>
 
-        {/* Direct Contact Action Bar (Section 9) */}
+        {/* Direct Contact Action Bar */}
         <div className="px-6 py-3 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => onOpenWhatsApp(lead)}
-              className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition cursor-pointer"
-            >
-              <MessageSquare className="w-4 h-4" />
-              <span>WhatsApp</span>
-            </button>
+          {canContact ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => onOpenWhatsApp(lead)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition cursor-pointer ${
+                  lead.whatsapp
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                    : 'bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4" />
+                <span>{lead.whatsapp ? 'WhatsApp' : 'Roteiro de abordagem'}</span>
+              </button>
 
-            <a
-              href={`tel:${lead.phone.replace(/\D/g, '')}`}
-              onClick={handleDirectCall}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-medium flex items-center gap-2 transition"
-            >
-              <Phone className="w-3.5 h-3.5 text-sky-400" />
-              <span>Ligar ({lead.phone})</span>
-            </a>
+              {lead.phone && (
+                <a
+                  href={`tel:${lead.phone.replace(/[^\d+]/g, '')}`}
+                  className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold flex items-center gap-2 transition"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Ligar ({lead.phone})</span>
+                </a>
+              )}
 
-            <a
-              href={`mailto:${lead.email}?subject=${encodeURIComponent(
-                `Proposta Digital TRUINEXA — ${lead.company}`
-              )}`}
-              onClick={handleDirectEmail}
-              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-medium flex items-center gap-2 transition"
-            >
-              <Mail className="w-3.5 h-3.5 text-indigo-400" />
-              <span>E-mail</span>
-            </a>
+              {lead.email && (
+                <a
+                  href={`mailto:${lead.email}?subject=${encodeURIComponent(
+                    `Proposta Digital TRUINEXA — ${lead.company}`
+                  )}`}
+                  onClick={handleDirectEmail}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-medium flex items-center gap-2 transition"
+                >
+                  <Mail className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>E-mail</span>
+                </a>
+              )}
 
-            <button
-              onClick={() => onOpenAppointment(lead)}
-              className="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-xs font-semibold flex items-center gap-2 transition cursor-pointer"
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Agendar contato</span>
-            </button>
-          </div>
+              <button
+                onClick={() => onOpenAppointment(lead)}
+                className="px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 text-xs font-semibold flex items-center gap-2 transition cursor-pointer"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>Agendar contato</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 text-xs">
+              <div>
+                <div className="font-semibold text-slate-200">Contato protegido</div>
+                <div className="text-slate-500">
+                  {lead.responsibleId
+                    ? `Cliente atribuído a ${lead.responsibleName}.`
+                    : 'Assuma o cliente para liberar ligação, roteiro e WhatsApp.'}
+                </div>
+              </div>
+              {!lead.responsibleId && (
+                <button
+                  onClick={handleClaimLead}
+                  className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold cursor-pointer"
+                >
+                  ASSUMIR CLIENTE
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-2">
             <button
@@ -415,6 +435,18 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                 <div>
                   <span className="text-slate-500 block mb-1">Origem</span>
                   <span className="text-slate-200">{lead.origin}</span>
+                </div>
+
+                <div>
+                  <span className="text-slate-500 block mb-1">Validação do Contato</span>
+                  <span className={`font-medium ${lead.sourceVerifiedAt ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {lead.sourceVerifiedAt ? 'Número comercial validado' : 'Validação não registrada'}
+                  </span>
+                  {lead.contactType && (
+                    <span className="block mt-0.5 text-[11px] text-slate-500">
+                      Tipo: {lead.contactType === 'fixo' ? 'telefone fixo' : lead.contactType === 'celular' ? 'celular' : lead.contactType === 'whatsapp' ? 'celular / WhatsApp' : 'não identificado'}
+                    </span>
+                  )}
                 </div>
               </div>
 
