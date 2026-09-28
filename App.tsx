@@ -13,8 +13,6 @@ import {
   Settings,
   Search,
   Plus,
-  Sun,
-  Moon,
   LogOut,
   TrendingUp,
   DollarSign,
@@ -44,17 +42,17 @@ import {
   AppointmentType,
   ServiceItem,
   ProjectStage,
-} from './types/crm';
-import { LoginView } from './components/LoginView';
-import { KanbanBoard } from './components/KanbanBoard';
-import { LeadDetailModal } from './components/LeadDetailModal';
+} from './crm';
+import { LoginView } from './LoginView';
+import { KanbanBoard } from './KanbanBoard';
+import { LeadDetailModal } from './LeadDetailModal';
 import {
   NewLeadModal,
   CloseDealModal,
   LostLeadModal,
   WhatsAppModal,
   QuickAppointmentModal,
-} from './components/ActionModals';
+} from './ActionModals';
 import {
   AtendimentoModule,
   AgendaModule,
@@ -62,7 +60,7 @@ import {
   ProjectsModule,
   ReportsModule,
   TeamAndSettingsModule,
-} from './components/ModulesView';
+} from './ModulesView';
 
 type NavTab =
   | 'dashboard'
@@ -98,7 +96,7 @@ export default function App() {
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [realtimePulse, setRealtimePulse] = useState<string | null>(null);
 
@@ -465,7 +463,7 @@ export default function App() {
 
   if (!crmState) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
         <div className="flex items-center gap-3 text-sm font-mono text-slate-400">
           <div className="w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
           <span>Carregando TRUINEXA DIGITAL CRM...</span>
@@ -572,7 +570,7 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen flex ${
+      className={`truinexa-app min-h-screen flex ${
         darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
       }`}
     >
@@ -597,7 +595,7 @@ export default function App() {
                 TRUINEXA DIGITAL
               </span>
               <span className="text-[10px] font-mono text-indigo-400">
-                CRM COMERCIAL INTERNO
+                GESTÃO COMERCIAL
               </span>
             </div>
           </div>
@@ -627,28 +625,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quick Role Switcher for immediate inspection of Daniel, Arthur, Pedro */}
-          <div className="mt-3 pt-2.5 border-t border-slate-800/80">
-            <span className="text-[10px] font-mono uppercase text-slate-500 block mb-1.5">
-              Alternar Sessão Ativa:
-            </span>
-            <div className="grid grid-cols-3 gap-1">
-              {crmState.users.map((u) => (
-                <button
-                  key={u.id}
-                  onClick={() => handleQuickSwitchUser(u.id)}
-                  disabled={u.status === 'inactive'}
-                  className={`py-1 px-1.5 rounded text-[11px] font-medium transition cursor-pointer ${
-                    currentUser.id === u.id
-                      ? 'bg-indigo-600 text-white font-semibold'
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200'
-                  } ${u.status === 'inactive' ? 'opacity-40 not-allowed' : ''}`}
-                >
-                  {u.name}
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         {/* Navigation Links */}
@@ -698,7 +674,7 @@ export default function App() {
           <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
             <span className="flex items-center gap-1.5 text-emerald-400">
               <Wifi className="w-3.5 h-3.5" />
-              <span>Real-Time Ativo</span>
+              <span>Sincronizado</span>
             </span>
             {realtimePulse && <span>{realtimePulse}</span>}
           </div>
@@ -707,7 +683,7 @@ export default function App() {
             className="w-full py-2 px-3 rounded-xl border border-slate-800 hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-300 text-xs font-medium flex items-center justify-center gap-2 transition cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span>Encerrar Sessão ({currentUser.name})</span>
+            <span>Sair</span>
           </button>
         </div>
       </aside>
@@ -802,14 +778,7 @@ export default function App() {
                 )}
               </button>
 
-              {/* Light / Dark Mode Toggle */}
-              <button
-                onClick={() => setDarkMode(!darkMode)}
-                title={darkMode ? 'Alternar para Tema Claro' : 'Alternar para Tema Escuro'}
-                className="p-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-300 hover:text-white cursor-pointer"
-              >
-                {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4" />}
-              </button>
+
             </div>
           </div>
 
@@ -1087,7 +1056,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Ranking de Atendimentos da Equipe (Daniel, Arthur, Pedro) */}
+                {/* Desempenho da equipe (Daniel, Arthur, Pedro) */}
                 <div className="lg:col-span-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-display font-bold text-white flex items-center gap-2">
@@ -1151,11 +1120,10 @@ export default function App() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h1 className="text-lg font-display font-bold">
-                    Quadro Kanban Comercial — Movimentação Dinâmica em Tempo Real
+                    Funil de Vendas
                   </h1>
                   <p className="text-xs text-slate-400">
-                    Arraste os cards entre as 9 etapas ou clique em um cliente para abrir o perfil
-                    completo e linha do tempo.
+                    Arraste os cards entre as etapas ou abra um cliente para ver detalhes e histórico.
                   </p>
                 </div>
                 <span className="text-xs font-mono text-slate-400">
@@ -1184,7 +1152,7 @@ export default function App() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h1 className="text-lg font-display font-bold">
-                    Base Geral de Clientes e Leads ({visibleLeads.length})
+                    Clientes e Leads ({visibleLeads.length})
                   </h1>
                   <p className="text-xs text-slate-400">
                     Modo de distribuição atual:{' '}
