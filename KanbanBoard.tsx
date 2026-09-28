@@ -11,7 +11,7 @@ import {
   Hand,
   ChevronRight,
 } from 'lucide-react';
-import { Lead, User, KANBAN_STAGES, KanbanStage } from '../types/crm';
+import { Lead, User, KANBAN_STAGES, KanbanStage } from './crm';
 
 interface KanbanBoardProps {
   leads: Lead[];
