@@ -5,25 +5,137 @@
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    --truinexa-bg: #f4f7fb;
+    --truinexa-surface: #ffffff;
+    --truinexa-surface-soft: #f8fafc;
+    --truinexa-border: #e2e8f0;
+    --truinexa-text: #0f172a;
+    --truinexa-muted: #64748b;
+    --truinexa-brand: #315b9d;
+    color-scheme: light;
+  }
+
+  html {
+    background: var(--truinexa-bg);
   }
 
   body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
     font-family: var(--font-sans);
+    background:
+      radial-gradient(circle at 12% 0%, rgba(49, 91, 157, 0.06), transparent 30rem),
+      var(--truinexa-bg);
+    color: var(--truinexa-text);
   }
 
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
+    letter-spacing: -0.015em;
   }
 
   .font-mono, .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid rgba(49, 91, 157, 0.45);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .truinexa-app {
+    background: var(--truinexa-bg);
+  }
+
+  /* Convert legacy dark surfaces into a calm, professional light workspace. */
+  .bg-slate-950,
+  .bg-slate-950\/90,
+  .bg-slate-950\/80,
+  .bg-slate-950\/40 {
+    background-color: var(--truinexa-surface-soft) !important;
+  }
+
+  .bg-slate-900,
+  .bg-slate-900\/95,
+  .bg-slate-900\/80,
+  .bg-slate-900\/70,
+  .bg-slate-900\/60,
+  .bg-slate-900\/50 {
+    background-color: var(--truinexa-surface) !important;
+  }
+
+  .bg-slate-800,
+  .bg-slate-800\/60,
+  .bg-slate-800\/40 {
+    background-color: #eef2f7 !important;
+  }
+
+  .border-slate-800,
+  .border-slate-800\/90,
+  .border-slate-800\/80,
+  .border-slate-800\/70 {
+    border-color: var(--truinexa-border) !important;
+  }
+
+  .text-slate-100 { color: #172033 !important; }
+  .text-slate-200 { color: #334155 !important; }
+  .text-slate-300 { color: #475569 !important; }
+  .text-slate-400 { color: #64748b !important; }
+  .text-slate-500 { color: #7c8799 !important; }
+
+  .text-white:not([class*="bg-indigo"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-sky"]):not([class*="bg-blue"]):not([class*="bg-violet"]):not([class*="bg-gradient"]) {
+    color: var(--truinexa-text) !important;
+  }
+
+  .text-indigo-300,
+  .text-indigo-400 {
+    color: #315b9d !important;
+  }
+
+  .bg-indigo-600 {
+    background-color: #315b9d !important;
+  }
+
+  .hover\:bg-indigo-500:hover {
+    background-color: #274d88 !important;
+  }
+
+  .shadow-indigo-500\/20,
+  .shadow-indigo-600\/20 {
+    --tw-shadow-color: rgba(49, 91, 157, 0.12) !important;
+  }
+
+  .rounded-2xl,
+  .rounded-xl {
+    border-radius: 14px;
+  }
+
+  aside {
+    box-shadow: 12px 0 36px rgba(15, 23, 42, 0.035);
+  }
+
+  header {
+    box-shadow: 0 1px 0 rgba(148, 163, 184, 0.12);
+  }
 }
 
 /* Custom subtle scrollbars for Kanban and tables */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
@@ -31,10 +143,10 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(100, 116, 139, 0.24);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+  background: rgba(100, 116, 139, 0.38);
 }
