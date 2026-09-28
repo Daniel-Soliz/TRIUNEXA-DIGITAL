@@ -34,7 +34,7 @@ import {
   PROJECT_STAGES,
   ProjectStage,
   KanbanStage,
-} from '../types/crm';
+} from './crm';
 
 /* ============================================================================
    1. ATENDIMENTO & WHATSAPP + FUNIL AUTOMATIZADO (Section 10 & 20)
