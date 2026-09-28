@@ -62,6 +62,7 @@ import {
   TeamAndSettingsModule,
 } from './ModulesView';
 import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supabaseApi';
+import { InstallAppButton } from './InstallAppButton';
 
 type NavTab =
   | 'dashboard'
@@ -720,9 +721,11 @@ export default function App() {
         {/* Brand Header */}
         <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/20">
-              <span className="font-display font-extrabold text-white text-base">T</span>
-            </div>
+            <img
+              src={`${import.meta.env.BASE_URL}icons/truinexa-192.png`}
+              alt="TRUINEXA DIGITAL"
+              className="w-9 h-9 rounded-xl object-cover shadow-md shadow-sky-500/20"
+            />
             <div>
               <span className="font-display font-bold text-sm tracking-tight block leading-none">
                 TRUINEXA DIGITAL
@@ -895,6 +898,10 @@ export default function App() {
                   </option>
                 ))}
               </select>
+
+              <InstallAppButton
+                className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold inline-flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer"
+              />
 
               {/* New Lead Primary CTA */}
               <button
