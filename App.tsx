@@ -44,17 +44,17 @@ import {
   AppointmentType,
   ServiceItem,
   ProjectStage,
-} from './types/crm';
-import { LoginView } from './components/LoginView';
-import { KanbanBoard } from './components/KanbanBoard';
-import { LeadDetailModal } from './components/LeadDetailModal';
+} from './crm';
+import { LoginView } from './LoginView';
+import { KanbanBoard } from './KanbanBoard';
+import { LeadDetailModal } from './LeadDetailModal';
 import {
   NewLeadModal,
   CloseDealModal,
   LostLeadModal,
   WhatsAppModal,
   QuickAppointmentModal,
-} from './components/ActionModals';
+} from './ActionModals';
 import {
   AtendimentoModule,
   AgendaModule,
@@ -62,7 +62,7 @@ import {
   ProjectsModule,
   ReportsModule,
   TeamAndSettingsModule,
-} from './components/ModulesView';
+} from './ModulesView';
 
 type NavTab =
   | 'dashboard'
