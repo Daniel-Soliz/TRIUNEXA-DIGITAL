@@ -101,6 +101,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [realtimePulse, setRealtimePulse] = useState<string | null>(null);
+  const [bootError, setBootError] = useState<string | null>(null);
 
   // Global Search & Quick Filters (Section 12)
   const [searchQuery, setSearchQuery] = useState('');
@@ -120,6 +121,7 @@ export default function App() {
     fetch('/api/state')
       .then((r) => r.json())
       .then((data: CRMState) => {
+        setBootError(null);
         setCrmState(data);
         const savedUserId = localStorage.getItem('truinexa_user_id');
         if (savedUserId) {
@@ -127,7 +129,10 @@ export default function App() {
           if (found) setCurrentUser(found);
         }
       })
-      .catch((err) => console.error('Initial state error:', err));
+      .catch((err) => {
+        console.error('Initial state error:', err);
+        setBootError('O frontend foi carregado, mas o servidor do CRM ainda não está conectado a este endereço.');
+      });
 
     const eventSource = new EventSource('/api/events');
     eventSource.onmessage = (event) => {
@@ -464,9 +469,39 @@ export default function App() {
   };
 
   if (!crmState) {
+    if (bootError) {
+      return (
+        <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-6">
+          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-display font-extrabold mb-5">
+              T
+            </div>
+            <p className="text-xs font-semibold tracking-[0.16em] text-indigo-600 uppercase">
+              TRUINEXA DIGITAL
+            </p>
+            <h1 className="mt-2 text-2xl font-display font-bold text-slate-900">
+              CRM carregado. Backend pendente de conexão.
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-slate-600">
+              {bootError}
+            </p>
+            <div className="mt-6 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-600">
+              O código do aplicativo está compilando corretamente. O GitHub Pages hospeda apenas o frontend e não executa o servidor Node/Express necessário para login, carteira, tempo real e automações.
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500 cursor-pointer"
+            >
+              Tentar reconectar
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center">
-        <div className="flex items-center gap-3 text-sm font-mono text-slate-400">
+      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
+        <div className="flex items-center gap-3 text-sm text-slate-500">
           <div className="w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
           <span>Carregando TRUINEXA DIGITAL CRM...</span>
         </div>
