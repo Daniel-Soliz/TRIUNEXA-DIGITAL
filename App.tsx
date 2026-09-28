@@ -1329,13 +1329,19 @@ export default function App() {
                             className="py-3.5 px-4 text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <button
-                              onClick={() => setWhatsAppLead(lead)}
-                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                              <span>WhatsApp</span>
-                            </button>
+                            {lead.responsibleId ? (
+                              <button
+                                onClick={() => setWhatsAppLead(lead)}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                <span>Roteiro / WhatsApp</span>
+                              </button>
+                            ) : (
+                              <span className="text-[11px] font-medium text-slate-500">
+                                Assuma para contatar
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
