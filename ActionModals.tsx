@@ -851,7 +851,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [customMessage, setCustomMessage] = useState('');
   const [copied, setCopied] = useState(false);
-  const [autoAdvanceStage, setAutoAdvanceStage] = useState<KanbanStage | ''>('CONTATO REALIZADO');
+  const [autoAdvanceStage, setAutoAdvanceStage] = useState<KanbanStage | ''>('');
   const [sending, setSending] = useState(false);
   const [sentFeedback, setSentFeedback] = useState<string | null>(null);
 
@@ -957,11 +957,7 @@ Se a estrutura fizer sentido, alinhamos os detalhes e já deixamos o próximo pa
     setCustomMessage(buildScript('abertura', lead));
     setSentFeedback(null);
 
-    if (lead.stage === 'NOVOS LEADS' || lead.stage === 'AGUARDANDO CONTATO') {
-      setAutoAdvanceStage('CONTATO REALIZADO');
-    } else {
-      setAutoAdvanceStage('');
-    }
+    setAutoAdvanceStage('');
   }, [lead?.id]);
 
   if (!lead) return null;
