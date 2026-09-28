@@ -202,6 +202,12 @@ export interface Lead {
   nextContactDate: string;
   stage: KanbanStage;
   observations: string;
+  /** Public prospecting source metadata. No private/personal enrichment is inferred. */
+  sourceProvider?: 'Google Places' | 'Manual' | 'Outro';
+  sourcePlaceId?: string;
+  sourceUrl?: string;
+  sourceVerifiedAt?: string;
+  claimedAt?: string;
   closedDetails?: ClosedDealDetails;
   lostDetails?: LostDetails;
 }
