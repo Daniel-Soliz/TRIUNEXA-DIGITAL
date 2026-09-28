@@ -14,7 +14,33 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500/30 selection:text-indigo-200">
-    <div id="root"></div>
+    <div id="root">
+      <div id="truinexa-boot" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0f172a;font-family:Inter,Arial,sans-serif;padding:24px;box-sizing:border-box">
+        <div style="width:100%;max-width:440px;background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:32px;box-shadow:0 20px 45px rgba(15,23,42,.08)">
+          <div style="width:44px;height:44px;border-radius:14px;background:#0f172a;color:white;display:flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:20px">T</div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#475569">TRUINEXA DIGITAL</div>
+          <h1 style="font-size:24px;line-height:1.2;margin:8px 0 10px">Carregando CRM...</h1>
+          <p style="font-size:14px;line-height:1.6;color:#64748b;margin:0">Preparando seu ambiente comercial seguro.</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      window.addEventListener('error', function () {
+        var root = document.getElementById('root');
+        if (!root) return;
+        setTimeout(function () {
+          if (document.getElementById('truinexa-boot')) {
+            root.innerHTML =
+              '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#0f172a;font-family:Arial,sans-serif;padding:24px;box-sizing:border-box">' +
+              '<div style="width:100%;max-width:520px;background:#fff;border:1px solid #e2e8f0;border-radius:24px;padding:32px;box-shadow:0 20px 45px rgba(15,23,42,.08)">' +
+              '<strong style="font-size:20px">TRUINEXA DIGITAL</strong>' +
+              '<p style="color:#64748b;line-height:1.6">O aplicativo não conseguiu iniciar. Atualize a página em alguns segundos. Se continuar, a publicação do GitHub Pages ainda está sendo concluída.</p>' +
+              '<button onclick="location.reload()" style="border:0;border-radius:12px;background:#0f172a;color:white;padding:12px 18px;font-weight:700;cursor:pointer">Tentar novamente</button>' +
+              '</div></div>';
+          }
+        }, 700);
+      });
+    </script>
     <script type="module" src="/main.tsx"></script>
   </body>
 </html>
