@@ -832,62 +832,177 @@ interface WhatsAppModalProps {
   ) => Promise<void>;
 }
 
+type SalesScriptStep =
+  | 'abertura'
+  | 'qualificacao'
+  | 'valor'
+  | 'proposta'
+  | 'fechamento';
+
 export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   lead,
   onClose,
   currentUser,
   templates,
-  whatsappMode,
+  whatsappMode: _whatsappMode,
   onRegisterWhatsAppContact,
 }) => {
-  const [selectedTemplateId, setSelectedTemplateId] = useState(templates[0]?.id || '');
+  const [activeStep, setActiveStep] = useState<SalesScriptStep>('abertura');
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [customMessage, setCustomMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [autoAdvanceStage, setAutoAdvanceStage] = useState<KanbanStage | ''>('CONTATO REALIZADO');
   const [sending, setSending] = useState(false);
   const [sentFeedback, setSentFeedback] = useState<string | null>(null);
 
-  const formatTemplate = (raw: string, l: Lead) => {
-    return raw
+  const formatTemplate = (raw: string, l: Lead) =>
+    raw
       .replace(/\{nome\}/g, l.name)
       .replace(/\{empresa\}/g, l.company)
       .replace(/\{vendedor\}/g, currentUser.name)
       .replace(/\{servico\}/g, l.serviceInterest)
       .replace(/\{cidade\}/g, l.city)
       .replace(/\{valor\}/g, `R$ ${l.estimatedValue.toLocaleString('pt-BR')}`);
+
+  const serviceBenefit = (l: Lead) => {
+    const service = l.serviceInterest.toLowerCase();
+
+    if (service.includes('site') || service.includes('landing')) {
+      return 'apresentar os serviços com mais confiança, facilitar pedidos de orçamento e transformar visitas do Google e das redes sociais em conversas comerciais';
+    }
+    if (
+      service.includes('rede') ||
+      service.includes('conteúdo') ||
+      service.includes('marketing') ||
+      service.includes('divulgação')
+    ) {
+      return 'organizar a comunicação da marca, mostrar melhor os serviços e gerar mais conversas com potenciais clientes';
+    }
+    if (
+      service.includes('identidade') ||
+      service.includes('design') ||
+      service.includes('flyer') ||
+      service.includes('banner')
+    ) {
+      return 'deixar a comunicação mais profissional e tornar ofertas, promoções e serviços mais fáceis de entender';
+    }
+    return 'fortalecer a presença digital e transformar mais pessoas interessadas em contatos comerciais';
+  };
+
+  const buildScript = (step: SalesScriptStep, l: Lead) => {
+    const firstName =
+      l.name && l.name.toLowerCase() !== 'contato comercial'
+        ? l.name.split(' ')[0]
+        : 'tudo bem';
+    const location = l.neighborhood || l.city;
+    const benefit = serviceBenefit(l);
+    const price = `R$ ${l.estimatedValue.toLocaleString('pt-BR')}`;
+
+    if (step === 'abertura') {
+      return `Olá, ${firstName}! Meu nome é ${currentUser.name}, falo pela TRUINEXA DIGITAL. Encontrei a ${l.company} enquanto pesquisava negócios de ${l.segment} em ${location} e vi uma oportunidade de fortalecer a presença digital de vocês.
+
+Nós trabalhamos com ${l.serviceInterest} e a ideia seria ajudar a ${l.company} a ${benefit}.
+
+Posso te mostrar em 2 minutos uma ideia prática para o negócio de vocês? Sem compromisso.`;
+    }
+
+    if (step === 'qualificacao') {
+      return `Perfeito! Para eu não te mandar uma proposta genérica, posso entender duas coisas rápidas?
+
+1. Hoje a maior parte dos novos clientes chega por indicação, Instagram, Google ou WhatsApp?
+2. Vocês já têm alguém cuidando de ${l.serviceInterest.toLowerCase()} ou isso ainda fica por conta da própria equipe?
+
+Com essas duas respostas eu consigo te mostrar algo bem mais alinhado à realidade da ${l.company}.`;
+    }
+
+    if (step === 'valor') {
+      return `Entendi. Pensando no perfil da ${l.company}, eu estruturaria o trabalho de ${l.serviceInterest} com foco em três pontos:
+
+• deixar a apresentação da empresa mais profissional;
+• facilitar o caminho entre a pessoa interessada e o contato pelo WhatsApp;
+• criar uma estrutura que vocês consigam continuar usando no dia a dia.
+
+O objetivo não é só “ficar bonito”, e sim facilitar a entrada de novas conversas comerciais e apresentar melhor o valor do negócio.`;
+    }
+
+    if (step === 'proposta') {
+      return `Para você ter uma referência, um projeto de ${l.serviceInterest} nesse perfil parte de aproximadamente ${price} na TRUINEXA, dependendo do escopo final.
+
+Antes de fechar qualquer coisa, eu posso te mandar uma proposta objetiva com:
+• o que será entregue;
+• prazo;
+• valor final;
+• forma de pagamento;
+• como funcionam ajustes e suporte.
+
+Se fizer sentido para vocês, a gente avança. Se não fizer, sem problema.`;
+    }
+
+    return `Se eu te enviar hoje uma proposta curta, com escopo, prazo e valor final para a ${l.company}, você consegue avaliar?
+
+Se a estrutura fizer sentido, alinhamos os detalhes e já deixamos o próximo passo definido. Posso preparar isso para você?`;
+  };
+
+  const objectionScripts = {
+    preco: `Entendo totalmente. A ideia não é colocar um custo que não faça sentido para a ${lead?.company || 'empresa'}. Podemos começar pelo essencial, priorizando o que gera mais valor agora, e deixar melhorias adicionais para uma segunda etapa. Se eu ajustar o escopo para uma versão mais enxuta, você gostaria de avaliar?`,
+    pensar: `Claro, sem problema. Para facilitar sua decisão, posso te deixar a proposta organizada com escopo, prazo e valor, sem compromisso. Assim você consegue avaliar com calma e comparar exatamente o que está incluído. Posso te mandar?`,
+    fornecedor: `Perfeito — isso é até um bom sinal, porque vocês já valorizam a presença digital. Não quero substituir algo que esteja funcionando. Posso te mostrar uma ideia complementar e você avalia se existe algum ponto em que a TRUINEXA possa somar?`,
+    agoraNao: `Tranquilo. Posso deixar meu contato e uma proposta resumida para vocês terem como referência? Assim, quando surgir a prioridade, vocês já sabem exatamente o que conseguimos entregar e em qual faixa de investimento.`,
   };
 
   useEffect(() => {
-    if (lead && templates.length > 0) {
-      const tpl = templates.find((t) => t.id === selectedTemplateId) || templates[0];
-      setCustomMessage(formatTemplate(tpl.content, lead));
-      if (lead.stage === 'NOVOS LEADS' || lead.stage === 'AGUARDANDO CONTATO') {
-        setAutoAdvanceStage('CONTATO REALIZADO');
-      } else {
-        setAutoAdvanceStage('');
-      }
+    if (!lead) return;
+    setActiveStep('abertura');
+    setSelectedTemplateId('');
+    setCustomMessage(buildScript('abertura', lead));
+    setSentFeedback(null);
+
+    if (lead.stage === 'NOVOS LEADS' || lead.stage === 'AGUARDANDO CONTATO') {
+      setAutoAdvanceStage('CONTATO REALIZADO');
+    } else {
+      setAutoAdvanceStage('');
     }
-  }, [lead, selectedTemplateId, templates]);
+  }, [lead?.id]);
 
   if (!lead) return null;
 
-  const cleanPhone = (lead.whatsapp || lead.phone).replace(/\D/g, '');
+  const isAssigned = Boolean(lead.responsibleId);
+  const canContact =
+    isAssigned &&
+    (lead.responsibleId === currentUser.id || currentUser.role === 'admin');
+  const hasVerifiedWhatsApp = Boolean(lead.whatsapp?.trim());
+  const cleanPhone = (lead.whatsapp || '').replace(/\D/g, '');
   const formattedWaPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-  const waUrl = `https://wa.me/${formattedWaPhone}?text=${encodeURIComponent(customMessage)}`;
+  const waUrl = hasVerifiedWhatsApp
+    ? `https://wa.me/${formattedWaPhone}?text=${encodeURIComponent(customMessage)}`
+    : '';
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(customMessage);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const selectStep = (step: SalesScriptStep) => {
+    setActiveStep(step);
+    setSelectedTemplateId('');
+    setCustomMessage(buildScript(step, lead));
   };
 
-  const handleSendAndLog = async (mode: 'wa_link' | 'business_api' | 'manual_log') => {
+  const selectTemplate = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    const template = templates.find((item) => item.id === templateId);
+    if (template) setCustomMessage(formatTemplate(template.content, lead));
+  };
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(customMessage);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  const handleSendAndLog = async (mode: 'wa_link' | 'manual_log') => {
+    if (!canContact) return;
     setSending(true);
     try {
       const summary =
-        mode === 'business_api'
-          ? `Mensagem enviada via WhatsApp Business Platform API: "${customMessage.slice(0, 90)}..."`
-          : `Contato realizado via WhatsApp: "${customMessage.slice(0, 90)}..."`;
+        mode === 'wa_link'
+          ? `Contato iniciado pelo WhatsApp: "${customMessage.slice(0, 110)}..."`
+          : `Contato registrado manualmente: "${customMessage.slice(0, 110)}..."`;
 
       await onRegisterWhatsAppContact(
         lead.id,
@@ -895,14 +1010,9 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
         autoAdvanceStage ? (autoAdvanceStage as KanbanStage) : undefined
       );
 
-      if (mode === 'business_api') {
-        setSentFeedback('Mensagem disparada e registrada via WhatsApp Business Cloud API!');
-        setTimeout(() => {
-          setSentFeedback(null);
-          onClose();
-        }, 1200);
-      } else {
-        onClose();
+      if (mode === 'manual_log') {
+        setSentFeedback('Contato registrado no histórico comercial.');
+        setTimeout(() => setSentFeedback(null), 2200);
       }
     } finally {
       setSending(false);
@@ -910,130 +1020,290 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl">
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-emerald-500/10">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 backdrop-blur-sm p-3 sm:p-5 overflow-y-auto">
+      <div className="bg-white border border-slate-200 rounded-3xl max-w-6xl w-full overflow-hidden shadow-2xl my-4 text-slate-900">
+        <div className="px-5 sm:px-7 py-5 border-b border-slate-200 flex items-center justify-between bg-white">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 shrink-0">
               <MessageSquare className="w-5 h-5" />
             </div>
-            <div>
-              <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 block">
-                {whatsappMode === 'business_api'
-                  ? 'WhatsApp Business Platform (Oficial)'
-                  : 'WhatsApp Comercial Direto'}
+            <div className="min-w-0">
+              <span className="text-[11px] uppercase tracking-[0.15em] text-emerald-700 font-bold block">
+                Painel de abordagem comercial
               </span>
-              <h2 className="text-base font-display font-bold text-white">
-                Conversar com {lead.name} ({lead.company})
+              <h2 className="text-lg font-display font-bold text-slate-900 truncate">
+                {lead.company}
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-900 hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
-          {sentFeedback && (
-            <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-xs text-emerald-200 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              <span>{sentFeedback}</span>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid lg:grid-cols-[320px_1fr]">
+          <aside className="border-b lg:border-b-0 lg:border-r border-slate-200 bg-slate-50 p-5 sm:p-6 space-y-5">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Template de Mensagem Pré-Preenchida
-              </label>
-              <select
-                value={selectedTemplateId}
-                onChange={(e) => setSelectedTemplateId(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-emerald-500"
-              >
-                {templates.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} ({t.category})
-                  </option>
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2">
+                Cliente
+              </p>
+              <h3 className="font-display font-bold text-slate-900">{lead.company}</h3>
+              <p className="text-sm text-slate-500 mt-1">
+                {lead.segment} • {lead.neighborhood || lead.city}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white border border-slate-200 p-4">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                Oportunidade sugerida
+              </p>
+              <p className="font-semibold text-slate-900 mt-2">{lead.serviceInterest}</p>
+              <div className="mt-2 flex items-center gap-2 text-emerald-700 font-bold">
+                <DollarSign className="w-4 h-4" />
+                <span>Referência: R$ {lead.estimatedValue.toLocaleString('pt-BR')}</span>
+              </div>
+              <p className="text-xs leading-5 text-slate-500 mt-2">
+                Valor de referência. O preço final deve seguir o escopo aprovado pelo cliente.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-white border border-slate-200 p-4">
+              <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold mb-2">
+                Diagnóstico disponível
+              </p>
+              <p className="text-xs leading-5 text-slate-600">
+                {lead.observations || 'Lead encontrado em fonte comercial pública. Confirme a necessidade durante a conversa antes de apresentar uma solução.'}
+              </p>
+            </div>
+
+            {!isAssigned ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+                <div className="flex items-center gap-2 font-semibold text-sm">
+                  <AlertTriangle className="w-4 h-4" />
+                  Assuma o cliente primeiro
+                </div>
+                <p className="text-xs leading-5 mt-2">
+                  O contato comercial só é liberado depois que o lead entra na carteira de um vendedor.
+                </p>
+              </div>
+            ) : !canContact ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-600">
+                <p className="text-sm font-semibold">Cliente em outra carteira</p>
+                <p className="text-xs leading-5 mt-1">
+                  Responsável atual: {lead.responsibleName}.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+                <div className="flex items-center gap-2 text-emerald-800 font-semibold text-sm">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Cliente na carteira
+                </div>
+                <p className="text-xs text-emerald-700 mt-1">
+                  Responsável: {lead.responsibleName}
+                </p>
+              </div>
+            )}
+
+            {canContact && !hasVerifiedWhatsApp && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-center gap-2 text-amber-800 font-semibold text-sm">
+                  <AlertTriangle className="w-4 h-4" />
+                  WhatsApp não confirmado
+                </div>
+                <p className="text-xs leading-5 text-amber-700 mt-1">
+                  Existe telefone público ({lead.phone || 'não informado'}), mas ainda não há confirmação de que esse número aceita WhatsApp. O roteiro pode ser copiado normalmente.
+                </p>
+              </div>
+            )}
+          </aside>
+
+          <section className="p-5 sm:p-7 space-y-6">
+            {sentFeedback && (
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-sm text-emerald-800 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{sentFeedback}</span>
+              </div>
+            )}
+
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-sm font-bold text-slate-900">Roteiro de venda por etapa</h3>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                {[
+                  ['abertura', '1. Abertura'],
+                  ['qualificacao', '2. Qualificar'],
+                  ['valor', '3. Mostrar valor'],
+                  ['proposta', '4. Proposta'],
+                  ['fechamento', '5. Fechamento'],
+                ].map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => selectStep(id as SalesScriptStep)}
+                    disabled={!canContact}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                      activeStep === id && !selectedTemplateId
+                        ? 'bg-slate-900 border-slate-900 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-400'
+                    }`}
+                  >
+                    {label}
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
+
+            {templates.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <label className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+                  Ou usar template salvo:
+                </label>
+                <select
+                  value={selectedTemplateId}
+                  onChange={(e) => selectTemplate(e.target.value)}
+                  disabled={!canContact}
+                  className="flex-1 px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-slate-400 disabled:opacity-50"
+                >
+                  <option value="">Roteiro inteligente acima</option>
+                  {templates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name} — {template.category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Atualizar Etapa Automaticamente Após Contato
-              </label>
-              <select
-                value={autoAdvanceStage}
-                onChange={(e) => setAutoAdvanceStage(e.target.value as KanbanStage | '')}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-emerald-500"
-              >
-                <option value="">Manter etapa atual ({lead.stage})</option>
-                <option value="CONTATO REALIZADO">Mover para: CONTATO REALIZADO</option>
-                <option value="INTERESSADO">Mover para: INTERESSADO</option>
-                <option value="PROPOSTA ENVIADA">Mover para: PROPOSTA ENVIADA</option>
-                <option value="AGUARDANDO RESPOSTA">Mover para: AGUARDANDO RESPOSTA</option>
-              </select>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <label className="text-xs font-bold text-slate-700">
+                  Mensagem pronta para editar
+                </label>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  disabled={!canContact}
+                  className="text-xs text-emerald-700 hover:text-emerald-900 flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copied ? 'Copiado' : 'Copiar texto'}</span>
+                </button>
+              </div>
+              <textarea
+                rows={10}
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                disabled={!canContact}
+                className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm text-slate-800 leading-6 focus:outline-none focus:border-slate-400 disabled:opacity-50"
+              />
             </div>
-          </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-medium text-slate-300">
-                Mensagem Personalizada para {lead.name} ({lead.phone})
-              </label>
+            <div>
+              <p className="text-xs font-bold text-slate-700 mb-2">
+                Respostas rápidas para objeções
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  ['preco', '“Está caro”'],
+                  ['pensar', '“Vou pensar”'],
+                  ['fornecedor', '“Já tenho alguém”'],
+                  ['agoraNao', '“Agora não”'],
+                ].map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={!canContact}
+                    onClick={() => {
+                      setSelectedTemplateId('');
+                      setCustomMessage(objectionScripts[key as keyof typeof objectionScripts]);
+                    }}
+                    className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-700 transition disabled:opacity-40 cursor-pointer"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Depois do contato
+                </label>
+                <select
+                  value={autoAdvanceStage}
+                  onChange={(e) => setAutoAdvanceStage(e.target.value as KanbanStage | '')}
+                  disabled={!canContact}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-sm text-slate-700 focus:outline-none focus:border-slate-400 disabled:opacity-50"
+                >
+                  <option value="">Manter etapa atual</option>
+                  <option value="CONTATO REALIZADO">Contato realizado</option>
+                  <option value="INTERESSADO">Cliente interessado</option>
+                  <option value="PROPOSTA ENVIADA">Proposta enviada</option>
+                  <option value="AGUARDANDO RESPOSTA">Aguardando resposta</option>
+                </select>
+              </div>
+              <div className="rounded-2xl bg-slate-50 border border-slate-200 p-3.5">
+                <p className="text-xs font-semibold text-slate-700">Regra comercial</p>
+                <p className="text-xs leading-5 text-slate-500 mt-1">
+                  Seja objetivo, personalize o contexto e faça perguntas. Não prometa resultado garantido nem use urgência falsa.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200">
               <button
                 type="button"
-                onClick={handleCopy}
-                className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                onClick={() => handleSendAndLog('manual_log')}
+                disabled={sending || !canContact}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-semibold transition cursor-pointer disabled:opacity-40"
               >
-                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Mensagem copiada!' : 'Copiar mensagem'}</span>
+                Registrar contato no histórico
               </button>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  disabled={!canContact}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-semibold transition flex items-center gap-2 disabled:opacity-40"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  Copiar roteiro
+                </button>
+
+                {hasVerifiedWhatsApp && canContact ? (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      void handleSendAndLog('wa_link');
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center gap-2 shadow-sm"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Abrir conversa no WhatsApp
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="px-5 py-2.5 rounded-xl bg-slate-200 text-slate-500 text-xs font-bold flex items-center gap-2 cursor-not-allowed"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    {!canContact ? 'Assuma o cliente para contatar' : 'WhatsApp ainda não confirmado'}
+                  </button>
+                )}
+              </div>
             </div>
-            <textarea
-              rows={6}
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-              className="w-full p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-sm text-slate-100 leading-relaxed focus:outline-none focus:border-emerald-500"
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={() => handleSendAndLog('manual_log')}
-              disabled={sending}
-              className="px-4 py-2.5 rounded-xl border border-slate-700 text-slate-200 hover:bg-slate-800 text-xs font-medium transition cursor-pointer"
-            >
-              Apenas Registrar Contato no Histórico
-            </button>
-
-            <div className="flex items-center gap-2.5">
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => handleSendAndLog('wa_link')}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-emerald-600/20"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Abrir no WhatsApp Comum</span>
-              </a>
-
-              <button
-                type="button"
-                onClick={() => handleSendAndLog('business_api')}
-                disabled={sending}
-                className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center gap-2 shadow-lg shadow-indigo-600/20 cursor-pointer"
-              >
-                <Send className="w-3.5 h-3.5" />
-                <span>Disparar via WhatsApp Business API</span>
-              </button>
-            </div>
-          </div>
+          </section>
         </div>
       </div>
     </div>
