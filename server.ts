@@ -984,6 +984,17 @@ function createInitialDatabase(): PersistedDatabase {
     },
   ];
 
+  // Demo contacts are disabled by default so fabricated sample data is never mixed
+  // with real commercial opportunities. Set ENABLE_DEMO_DATA=true only for local demos.
+  if (process.env.ENABLE_DEMO_DATA !== 'true') {
+    leads.length = 0;
+    interactions.length = 0;
+    appointments.length = 0;
+    notifications.length = 0;
+    activityLogs.length = 0;
+    projects.length = 0;
+  }
+
   return {
     users,
     leads,
@@ -1000,11 +1011,11 @@ function createInitialDatabase(): PersistedDatabase {
       lastAssignedIndex: 0,
       whatsappMode: 'common',
       whatsappBusinessConfig: {
-        phoneNumberId: '109283746519283',
-        businessAccountId: '987654321012345',
-        displayPhoneNumber: '+55 (11) 99000-2026',
-        webhookVerifyToken: 'truinexa_webhook_verify_2026',
-        connected: true,
+        phoneNumberId: '',
+        businessAccountId: '',
+        displayPhoneNumber: '',
+        webhookVerifyToken: '',
+        connected: false,
         autoStageUpdateOnReply: true,
         autoFollowUpDays: 2,
       },
