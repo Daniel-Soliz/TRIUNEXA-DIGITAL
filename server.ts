@@ -51,9 +51,9 @@ function sanitizeUser(u: StoredUser): User {
 }
 
 function createInitialDatabase(): PersistedDatabase {
-  const danielPass = hashPassword('Truinexa@Daniel2026');
-  const arthurPass = hashPassword('Truinexa@Arthur2026');
-  const pedroPass = hashPassword('Truinexa@Pedro2026');
+  const danielPass = hashPassword(process.env.TRUINEXA_DANIEL_PASSWORD || crypto.randomBytes(32).toString('hex'));
+  const arthurPass = hashPassword(process.env.TRUINEXA_ARTHUR_PASSWORD || crypto.randomBytes(32).toString('hex'));
+  const pedroPass = hashPassword(process.env.TRUINEXA_PEDRO_PASSWORD || crypto.randomBytes(32).toString('hex'));
 
   const users: StoredUser[] = [
     {
@@ -66,7 +66,7 @@ function createInitialDatabase(): PersistedDatabase {
       status: 'active',
       avatarColor: 'from-indigo-500 to-violet-600',
       mustChangePassword: false,
-      tempPasswordHint: 'Truinexa@Daniel2026',
+      tempPasswordHint: undefined,
       lastLoginAt: '2026-09-28T08:15:00-03:00',
       activeDevice: 'Notebook • São Paulo',
       passwordHash: danielPass.hash,
@@ -93,7 +93,7 @@ function createInitialDatabase(): PersistedDatabase {
       status: 'active',
       avatarColor: 'from-emerald-500 to-teal-600',
       mustChangePassword: false,
-      tempPasswordHint: 'Truinexa@Arthur2026',
+      tempPasswordHint: undefined,
       lastLoginAt: '2026-09-28T08:40:00-03:00',
       activeDevice: 'Celular • São Paulo',
       passwordHash: arthurPass.hash,
@@ -120,7 +120,7 @@ function createInitialDatabase(): PersistedDatabase {
       status: 'active',
       avatarColor: 'from-sky-500 to-blue-600',
       mustChangePassword: false,
-      tempPasswordHint: 'Truinexa@Pedro2026',
+      tempPasswordHint: undefined,
       lastLoginAt: '2026-09-28T08:52:00-03:00',
       activeDevice: 'Computador • São Paulo',
       passwordHash: pedroPass.hash,
