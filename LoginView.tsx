@@ -14,7 +14,7 @@ import {
   Smartphone,
   Monitor,
 } from 'lucide-react';
-import { User } from '../types/crm';
+import { User } from './crm';
 
 interface LoginViewProps {
   users: User[];
