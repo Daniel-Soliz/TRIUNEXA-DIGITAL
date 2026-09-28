@@ -185,6 +185,12 @@ export interface Lead {
   state: string;
   phone: string;
   whatsapp: string;
+  phoneNormalized?: string;
+  contactType?: 'fixo' | 'celular' | 'whatsapp' | 'nao_identificado' | null;
+  contactValidationMethod?: string;
+  sourceProvider?: string;
+  sourceUrl?: string;
+  sourceVerifiedAt?: string;
   email: string;
   instagram: string;
   website: string;
