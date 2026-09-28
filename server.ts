@@ -17,7 +17,7 @@ import {
   KanbanStage,
   ClosedDealDetails,
   LostDetails,
-} from './src/types/crm.ts';
+} from './crm.ts';
 
 const PORT = 3000;
 const DATA_DIR = path.resolve(process.cwd(), 'data');
