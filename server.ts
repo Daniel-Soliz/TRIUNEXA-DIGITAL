@@ -17,7 +17,7 @@ import {
   KanbanStage,
   ClosedDealDetails,
   LostDetails,
-} from './src/types/crm.ts';
+} from './crm.ts';
 
 const PORT = 3000;
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -1068,6 +1068,309 @@ function broadcastState(eventType = 'state_updated', meta?: Record<string, unkno
   }
 }
 
+type GooglePlace = {
+  id?: string;
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  nationalPhoneNumber?: string;
+  internationalPhoneNumber?: string;
+  websiteUri?: string;
+  googleMapsUri?: string;
+  primaryTypeDisplayName?: { text?: string };
+  businessStatus?: string;
+  addressComponents?: Array<{
+    longText?: string;
+    shortText?: string;
+    types?: string[];
+  }>;
+};
+
+const PROSPECTING_TIME_ZONE = 'America/Sao_Paulo';
+const PROSPECTING_START_HOUR = Number(process.env.PROSPECTING_START_HOUR || 9);
+const PROSPECTING_END_HOUR = Number(process.env.PROSPECTING_END_HOUR || 18);
+const PROSPECTING_LEADS_PER_RUN = Math.max(
+  1,
+  Math.min(10, Number(process.env.PROSPECTING_LEADS_PER_RUN || 3))
+);
+const PROSPECTING_QUERIES = [
+  'barbearia em Brasilândia São Paulo',
+  'salão de beleza em Brasilândia São Paulo',
+  'clínica odontológica em São Paulo',
+  'academia em São Paulo',
+  'oficina mecânica em São Paulo',
+  'pet shop em São Paulo',
+  'restaurante em São Paulo',
+  'loja de roupas em São Paulo',
+  'imobiliária em São Paulo',
+  'escritório de contabilidade em São Paulo',
+  'empresa de serviços em Lapa São Paulo',
+  'comércio local em Santana São Paulo',
+];
+
+let lastProspectingSlot = '';
+let prospectingRunning = false;
+
+function getSaoPauloClock(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: PROSPECTING_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const dateKey = `${values.year}-${values.month}-${values.day}`;
+  const hour = Number(values.hour || 0);
+  return { dateKey, hour, slot: `${dateKey}-${String(hour).padStart(2, '0')}` };
+}
+
+function getAddressPart(place: GooglePlace, type: string) {
+  return (
+    place.addressComponents?.find((component) => component.types?.includes(type))?.longText || ''
+  );
+}
+
+function normalizePublicPhone(phone?: string) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+function recommendService(place: GooglePlace) {
+  const segment = place.primaryTypeDisplayName?.text || 'Comércio & Serviços';
+  const normalizedSegment = segment.toLowerCase();
+
+  if (!place.websiteUri) {
+    return {
+      serviceInterest: 'Site para negócios locais',
+      serviceCategory: 'Desenvolvimento Digital' as const,
+      estimatedValue: 850,
+      closingProbability: 35,
+    };
+  }
+
+  if (
+    normalizedSegment.includes('barbear') ||
+    normalizedSegment.includes('beleza') ||
+    normalizedSegment.includes('restaurante') ||
+    normalizedSegment.includes('academia') ||
+    normalizedSegment.includes('pet')
+  ) {
+    return {
+      serviceInterest: 'Gestão de redes sociais',
+      serviceCategory: 'Marketing Digital' as const,
+      estimatedValue: 900,
+      closingProbability: 30,
+    };
+  }
+
+  return {
+    serviceInterest: 'Consultoria de presença online',
+    serviceCategory: 'Consultoria' as const,
+    estimatedValue: 400,
+    closingProbability: 25,
+  };
+}
+
+async function fetchPublicBusinessProspects(query: string): Promise<GooglePlace[]> {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey) {
+    throw new Error('GOOGLE_MAPS_API_KEY não configurada.');
+  }
+
+  const response = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask':
+        'places.id,places.displayName,places.formattedAddress,places.addressComponents,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.primaryTypeDisplayName,places.businessStatus',
+    },
+    body: JSON.stringify({
+      textQuery: query,
+      languageCode: 'pt-BR',
+      regionCode: 'BR',
+      maxResultCount: 20,
+    }),
+  });
+
+  if (!response.ok) {
+    const details = await response.text();
+    throw new Error(`Google Places respondeu ${response.status}: ${details.slice(0, 240)}`);
+  }
+
+  const data = (await response.json()) as { places?: GooglePlace[] };
+  return data.places || [];
+}
+
+async function importRealBusinessLeads(trigger: 'scheduler' | 'manual' = 'scheduler') {
+  if (prospectingRunning) {
+    return { imported: 0, skipped: 0, message: 'Uma busca de oportunidades já está em andamento.' };
+  }
+
+  prospectingRunning = true;
+  try {
+    const shuffledQueries = [...PROSPECTING_QUERIES].sort(() => Math.random() - 0.5);
+    let imported = 0;
+    let skipped = 0;
+    const importedCompanies: string[] = [];
+
+    for (const query of shuffledQueries.slice(0, 4)) {
+      const places = await fetchPublicBusinessProspects(query);
+      const shuffledPlaces = [...places].sort(() => Math.random() - 0.5);
+
+      for (const place of shuffledPlaces) {
+        if (imported >= PROSPECTING_LEADS_PER_RUN) break;
+        if (!place.id || place.businessStatus === 'CLOSED_PERMANENTLY') {
+          skipped += 1;
+          continue;
+        }
+
+        const company = place.displayName?.text?.trim();
+        const publicPhone =
+          place.nationalPhoneNumber || place.internationalPhoneNumber || '';
+        if (!company || (!publicPhone && !place.websiteUri)) {
+          skipped += 1;
+          continue;
+        }
+
+        const duplicate = db.leads.some(
+          (lead) =>
+            lead.sourcePlaceId === place.id ||
+            (lead.company.trim().toLowerCase() === company.toLowerCase() &&
+              normalizePublicPhone(lead.phone) === normalizePublicPhone(publicPhone))
+        );
+        if (duplicate) {
+          skipped += 1;
+          continue;
+        }
+
+        const now = new Date().toISOString();
+        const city =
+          getAddressPart(place, 'administrative_area_level_2') ||
+          getAddressPart(place, 'locality') ||
+          'São Paulo';
+        const neighborhood =
+          getAddressPart(place, 'sublocality_level_1') ||
+          getAddressPart(place, 'sublocality') ||
+          getAddressPart(place, 'neighborhood') ||
+          'Região não informada';
+        const state =
+          getAddressPart(place, 'administrative_area_level_1') === 'São Paulo' ? 'SP' : 'SP';
+        const recommendation = recommendService(place);
+        const segment = place.primaryTypeDisplayName?.text || 'Comércio & Serviços';
+        const phoneDigits = normalizePublicPhone(publicPhone);
+
+        const lead: Lead = {
+          id: `lead-prospect-${Date.now()}-${imported}`,
+          name: 'Contato comercial',
+          company,
+          segment,
+          profession: 'Responsável comercial / proprietário',
+          city,
+          neighborhood,
+          state,
+          phone: publicPhone,
+          whatsapp: phoneDigits,
+          email: '',
+          instagram: '',
+          website: place.websiteUri || 'Não possui site informado',
+          origin: 'Prospecção automática • Google Places',
+          ...recommendation,
+          responsibleId: null,
+          responsibleName: 'Disponível',
+          createdAt: now,
+          stageChangedAt: now,
+          lastInteractionAt: now,
+          nextAction: 'Adicionar à carteira e validar o melhor canal de contato',
+          nextContactDate: now.slice(0, 10),
+          stage: 'NOVOS LEADS',
+          observations:
+            `Oportunidade encontrada automaticamente em fonte pública. Endereço público: ${place.formattedAddress || 'não informado'}. ` +
+            'Telefone e site são dados comerciais públicos; confirme se o número possui WhatsApp antes do primeiro envio.',
+          sourceProvider: 'Google Places',
+          sourcePlaceId: place.id,
+          sourceUrl: place.googleMapsUri,
+          sourceVerifiedAt: now,
+        };
+
+        db.leads.unshift(lead);
+        db.interactions.unshift({
+          id: `int-prospect-${Date.now()}-${imported}`,
+          leadId: lead.id,
+          leadCompany: lead.company,
+          userId: 'system-prospecting',
+          userName: 'Prospecção Automática',
+          type: 'criacao',
+          message: `Oportunidade pública importada automaticamente via Google Places (${query}).`,
+          createdAt: now,
+        });
+        db.notifications.unshift({
+          id: `notif-prospect-${Date.now()}-${imported}`,
+          userId: 'all',
+          type: 'novo_lead',
+          title: 'Nova oportunidade disponível',
+          message: `${lead.company} entrou na fila e está disponível para ser adicionada à carteira.`,
+          leadId: lead.id,
+          readBy: [],
+          createdAt: now,
+        });
+        db.activityLogs.unshift({
+          id: `log-prospect-${Date.now()}-${imported}`,
+          userId: 'system-prospecting',
+          userName: 'Prospecção Automática',
+          action: 'Oportunidade Importada',
+          leadId: lead.id,
+          leadName: lead.company,
+          toStage: lead.stage,
+          details: `Fonte pública: Google Places. Gatilho: ${trigger}.`,
+          createdAt: now,
+        });
+
+        imported += 1;
+        importedCompanies.push(company);
+      }
+
+      if (imported >= PROSPECTING_LEADS_PER_RUN) break;
+    }
+
+    if (imported > 0) {
+      saveDatabase();
+      broadcastState('prospects_imported', {
+        imported,
+        trigger,
+        companies: importedCompanies,
+      });
+    }
+
+    return {
+      imported,
+      skipped,
+      companies: importedCompanies,
+      message:
+        imported > 0
+          ? `${imported} oportunidade(s) real(is) adicionada(s).`
+          : 'Nenhuma oportunidade nova encontrada nesta rodada.',
+    };
+  } finally {
+    prospectingRunning = false;
+  }
+}
+
+async function maybeRunScheduledProspecting() {
+  if (!process.env.GOOGLE_MAPS_API_KEY) return;
+
+  const clock = getSaoPauloClock();
+  if (clock.hour < PROSPECTING_START_HOUR || clock.hour > PROSPECTING_END_HOUR) return;
+  if (clock.slot === lastProspectingSlot) return;
+
+  lastProspectingSlot = clock.slot;
+  try {
+    await importRealBusinessLeads('scheduler');
+  } catch (error) {
+    console.error('Automatic prospecting error:', error);
+  }
+}
+
 async function startServer() {
   const app = express();
   app.use(express.json({ limit: '5mb' }));
@@ -1096,6 +1399,45 @@ async function startServer() {
   app.get('/api/state', (_req: Request, res: Response) => {
     res.json(getPublicState());
   });
+
+  app.get('/api/prospecting/status', (_req: Request, res: Response) => {
+    const clock = getSaoPauloClock();
+    res.json({
+      enabled: Boolean(process.env.GOOGLE_MAPS_API_KEY),
+      provider: 'Google Places',
+      sourcePolicy: 'Somente dados comerciais públicos; sem inferência de dados pessoais.',
+      timeZone: PROSPECTING_TIME_ZONE,
+      startHour: PROSPECTING_START_HOUR,
+      endHour: PROSPECTING_END_HOUR,
+      leadsPerRun: PROSPECTING_LEADS_PER_RUN,
+      currentLocalDate: clock.dateKey,
+      currentLocalHour: clock.hour,
+      lastSlot: lastProspectingSlot || null,
+      running: prospectingRunning,
+    });
+  });
+
+  app.post('/api/prospecting/run', async (req: Request, res: Response) => {
+    const { actorId } = req.body || {};
+    const actor = db.users.find((user) => user.id === actorId);
+    if (!actor || !actor.permissions.canConfigureSystem) {
+      res.status(403).json({ error: 'Somente o administrador pode iniciar uma busca manual.' });
+      return;
+    }
+
+    try {
+      const result = await importRealBusinessLeads('manual');
+      res.json(result);
+    } catch (error) {
+      res.status(503).json({
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível consultar a fonte pública de oportunidades.',
+      });
+    }
+  });
+
 
   // Auth: Login
   app.post('/api/auth/login', (req: Request, res: Response) => {
@@ -2041,6 +2383,13 @@ async function startServer() {
     broadcastState('notifications_updated');
     res.json({ ok: true });
   });
+
+  // Automatic prospecting: from 09:00 (São Paulo), one import window per hour.
+  // The hosting service must stay active for this in-process scheduler to run continuously.
+  void maybeRunScheduledProspecting();
+  setInterval(() => {
+    void maybeRunScheduledProspecting();
+  }, 5 * 60 * 1000);
 
   // Vite middleware for development or static assets in production
   if (process.env.NODE_ENV !== 'production') {
