@@ -101,6 +101,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [darkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showMoreTools, setShowMoreTools] = useState(false);
   const [realtimePulse, setRealtimePulse] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
 
@@ -665,32 +666,31 @@ export default function App() {
       !n.readBy.includes(currentUser.id)
   );
 
-  const navItems: {
+  type NavigationItem = {
     id: NavTab;
     label: string;
     icon: React.ElementType;
     badge?: number;
-    adminOnly?: boolean;
-  }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  };
+
+  const primaryNavItems: NavigationItem[] = [
+    { id: 'dashboard', label: 'Início', icon: LayoutDashboard },
     { id: 'leads', label: 'Oportunidades', icon: Users, badge: availableLeads.length },
     { id: 'carteira', label: 'Minha Carteira', icon: Award, badge: myPortfolioCount },
-    { id: 'kanban', label: 'Funil de Vendas', icon: Kanban },
-    { id: 'atendimento', label: 'Atendimento', icon: MessageSquare },
     {
       id: 'agenda',
       label: 'Agenda',
       icon: Calendar,
       badge: crmState.appointments.filter((a) => a.status === 'pendente').length,
     },
+  ];
+
+  const moreNavItems: NavigationItem[] = [
+    { id: 'kanban', label: 'Funil de Vendas', icon: Kanban },
+    { id: 'atendimento', label: 'Atendimento', icon: MessageSquare },
     { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
     { id: 'servicos', label: 'Serviços', icon: Briefcase },
-    {
-      id: 'projetos',
-      label: 'Gestão de Projetos',
-      icon: FolderKanban,
-      badge: crmState.projects.length,
-    },
+    { id: 'projetos', label: 'Projetos', icon: FolderKanban, badge: crmState.projects.length },
     { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
     {
       id: 'notificacoes',
@@ -702,13 +702,31 @@ export default function App() {
     { id: 'configuracoes', label: 'Configurações', icon: Settings },
   ];
 
+  const goToTab = (tab: NavTab) => {
+    if (tab === 'leads') {
+      setResponsibleFilter('unassigned');
+    } else if (tab === 'carteira') {
+      setResponsibleFilter(currentUser.id);
+    }
+    setActiveTab(tab);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div
       className={`min-h-screen flex ${
         darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
       }`}
     >
-      {/* Left Sidebar Navigation (Section 23) */}
+      {mobileMenuOpen && (
+        <button
+          aria-label="Fechar menu"
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-950/30 lg:hidden"
+        />
+      )}
+
+      {/* Navegação simples */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 w-64 border-r flex flex-col transition-transform lg:translate-x-0 lg:static ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
@@ -744,7 +762,7 @@ export default function App() {
         </div>
 
         {/* Connected User Card (Section 31: "Bem-vindo, Daniel — Perfil: Administrador") */}
-        <div className="p-4 border-b border-slate-800/80 bg-slate-950/40">
+        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-3">
             <div
               className={`w-9 h-9 rounded-xl bg-gradient-to-br ${currentUser.avatarColor} flex items-center justify-center text-white font-display font-bold text-sm shrink-0`}
@@ -752,7 +770,7 @@ export default function App() {
               {currentUser.name[0]}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-display font-bold text-white truncate">
+              <p className="text-xs font-display font-bold text-slate-900 truncate">
                 Bem-vindo, {currentUser.name}
               </p>
               <p className="text-[11px] text-indigo-400 font-medium">
@@ -763,51 +781,78 @@ export default function App() {
 
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.id === 'leads') {
-                    setResponsibleFilter('unassigned');
-                  } else if (item.id === 'carteira') {
-                    setResponsibleFilter(currentUser.id);
-                  }
-                  setActiveTab(item.id);
-                  setMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition cursor-pointer ${
-                  active
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-semibold'
-                    : darkMode
-                    ? 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon className="w-4 h-4 shrink-0" />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge !== undefined && item.badge > 0 && (
-                  <span
-                    className={`px-2 py-0.5 rounded-md font-mono text-[10px] font-bold ${
+        {/* Navegação essencial */}
+        <nav className="flex-1 p-3 overflow-y-auto">
+          <div className="space-y-1">
+            {primaryNavItems.map((item) => {
+              const Icon = item.icon;
+              const active = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => goToTab(item.id)}
+                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition cursor-pointer ${
+                    active
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-semibold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-4.5 h-4.5 shrink-0" />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <span className={`px-2 py-0.5 rounded-md font-mono text-[10px] font-bold ${
+                      active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="my-3 border-t border-slate-200" />
+
+          <button
+            onClick={() => setShowMoreTools((value) => !value)}
+            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+          >
+            <span className="flex items-center gap-3">
+              <Menu className="w-4.5 h-4.5" />
+              Mais ferramentas
+            </span>
+            <span className="text-xs text-slate-400">{showMoreTools ? '−' : '+'}</span>
+          </button>
+
+          {showMoreTools && (
+            <div className="mt-1 space-y-1 pl-2">
+              {moreNavItems.map((item) => {
+                const Icon = item.icon;
+                const active = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => goToTab(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition ${
                       active
-                        ? 'bg-white/20 text-white'
-                        : item.id === 'notificacoes'
-                        ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                        : 'bg-slate-800 text-slate-300'
+                        ? 'bg-slate-900 text-white'
+                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                     }`}
                   >
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                    <span className="flex items-center gap-2.5">
+                      <Icon className="w-4 h-4" />
+                      {item.label}
+                    </span>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span className="text-[10px] font-mono">{item.badge}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         {/* Sidebar Footer */}
@@ -884,7 +929,7 @@ export default function App() {
               <select
                 value={responsibleFilter}
                 onChange={(e) => setResponsibleFilter(e.target.value)}
-                className={`px-3 py-2 rounded-xl border text-xs font-medium focus:outline-none focus:border-indigo-500 ${
+                className={`hidden md:block px-3 py-2 rounded-xl border text-xs font-medium focus:outline-none focus:border-indigo-500 ${
                   darkMode
                     ? 'bg-slate-900 border-slate-800 text-slate-200'
                     : 'bg-white border-slate-300 text-slate-800'
@@ -900,13 +945,13 @@ export default function App() {
               </select>
 
               <InstallAppButton
-                className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold inline-flex items-center gap-2 hover:bg-slate-50 transition cursor-pointer"
+                className="hidden sm:inline-flex px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold items-center gap-2 hover:bg-slate-50 transition cursor-pointer"
               />
 
               {/* New Lead Primary CTA */}
               <button
                 onClick={() => setNewLeadModalOpen(true)}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-indigo-600/25 transition cursor-pointer"
+                className="hidden sm:flex px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold items-center gap-1.5 shadow-lg shadow-indigo-600/25 transition cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>Novo Lead</span>
@@ -928,7 +973,7 @@ export default function App() {
           </div>
 
           {/* Quick Filters Bar (Section 12) */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
+          <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-0.5">
             {QUICK_FILTERS.map((flt) => {
               const active = quickFilter === flt;
               return (
@@ -961,300 +1006,122 @@ export default function App() {
         </header>
 
         {/* Active View Body */}
-        <main className="flex-1 p-4 sm:p-6 overflow-x-hidden">
+        <main className="flex-1 p-4 sm:p-6 pb-24 lg:pb-6 overflow-x-hidden">
           {/* =================================================================
-              VIEW 1: DASHBOARD PRINCIPAL (Section 3 - All 15 Real-Time Metrics)
+              INÍCIO SIMPLES — foco no que a equipe precisa fazer agora
           ================================================================= */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-6">
-              {/* Top Welcome & Quick Actions Banner */}
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <span className="text-xs font-mono uppercase tracking-wider text-indigo-400 font-semibold block">
-                    Painel Executivo em Tempo Real • TRUINEXA DIGITAL
-                  </span>
-                  <h1 className="text-2xl font-display font-bold tracking-tight">
-                    Olá, {currentUser.name} ({currentUser.roleTitle})
-                  </h1>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <button
-                    onClick={() => setActiveTab('kanban')}
-                    className="px-4 py-2 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-slate-200 cursor-pointer"
-                  >
-                    Abrir Funil Kanban →
-                  </button>
-                </div>
+            <div className="max-w-5xl mx-auto space-y-5">
+              <div>
+                <span className="text-xs font-semibold uppercase tracking-wider text-indigo-500">
+                  TRUINEXA DIGITAL
+                </span>
+                <h1 className="mt-1 text-2xl font-display font-bold text-slate-900">
+                  Olá, {currentUser.name}. O que você quer fazer agora?
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  O fluxo é simples: escolha uma oportunidade, assuma o cliente e administre pela sua carteira.
+                </p>
               </div>
 
-              {/* Primary Financial & Conversion KPI Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-                  <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                    <span>Receita Fechada</span>
-                    <DollarSign className="w-4 h-4 text-emerald-400" />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  onClick={() => goToTab('leads')}
+                  className="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 text-left hover:border-indigo-300 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <Users className="w-5 h-5 text-indigo-600" />
+                    <span className="text-2xl font-bold text-indigo-700">{availableLeads.length}</span>
                   </div>
-                  <div className="font-mono text-2xl font-extrabold text-emerald-400">
-                    R$ {closedRevenue.toLocaleString('pt-BR')}
-                  </div>
-                  <div className="mt-1 text-[11px] text-slate-400 font-mono">
-                    {closedContracts.length} contratos fechados • Ticket médio: R${' '}
-                    {averageContractValue.toLocaleString('pt-BR')}
-                  </div>
-                </div>
+                  <div className="mt-4 font-display font-bold text-slate-900">1. Ver oportunidades</div>
+                  <div className="mt-1 text-xs text-slate-500">Escolha um novo cliente disponível.</div>
+                </button>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-                  <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                    <span>Receita Prevista (Pipeline)</span>
-                    <TrendingUp className="w-4 h-4 text-indigo-400" />
+                <button
+                  onClick={() => goToTab('carteira')}
+                  className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-left hover:border-emerald-300 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <Award className="w-5 h-5 text-emerald-600" />
+                    <span className="text-2xl font-bold text-emerald-700">{myPortfolioCount}</span>
                   </div>
-                  <div className="font-mono text-2xl font-extrabold text-white">
-                    R$ {forecastedRevenue.toLocaleString('pt-BR')}
-                  </div>
-                  <div className="mt-1 text-[11px] text-slate-400 font-mono">
-                    {proposalsSentCount} propostas ativas em avaliação
-                  </div>
-                </div>
+                  <div className="mt-4 font-display font-bold text-slate-900">2. Minha carteira</div>
+                  <div className="mt-1 text-xs text-slate-500">Ligue, mande mensagem e atualize a etapa.</div>
+                </button>
 
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-                  <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                    <span>Taxa de Conversão Geral</span>
-                    <Sparkles className="w-4 h-4 text-amber-400" />
+                <button
+                  onClick={() => goToTab('agenda')}
+                  className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-left hover:border-sky-300 transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <Calendar className="w-5 h-5 text-sky-600" />
+                    <span className="text-2xl font-bold text-sky-700">{portfolioPendingFollowUps}</span>
                   </div>
-                  <div className="font-mono text-2xl font-extrabold text-indigo-400">
-                    {conversionRate}%
-                  </div>
-                  <div className="mt-1 text-[11px] text-slate-400 font-mono">
-                    Valor médio: R$ {averageContractValue.toLocaleString('pt-BR')} / contrato
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5">
-                  <div className="flex items-center justify-between text-xs text-slate-400 mb-2">
-                    <span>Contatos Realizados</span>
-                    <PhoneCall className="w-4 h-4 text-sky-400" />
-                  </div>
-                  <div className="font-mono text-2xl font-extrabold text-white">
-                    {totalContactsMade}
-                  </div>
-                  <div className="mt-1 text-[11px] text-slate-400 font-mono">
-                    {contactedCount} clientes ativos contatados
-                  </div>
-                </div>
+                  <div className="mt-4 font-display font-bold text-slate-900">3. Retornos e agenda</div>
+                  <div className="mt-1 text-xs text-slate-500">Veja quem precisa de contato ou follow-up.</div>
+                </button>
               </div>
 
-              {/* Secondary Commercial Funnel Counts (All remaining metrics from Section 3) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                {[
-                  {
-                    label: 'Novos leads hoje',
-                    val: newLeadsToday,
-                    color: 'text-sky-400',
-                    stageFilter: 'Novos' as QuickFilterType,
-                  },
-                  {
-                    label: 'Aguardando contato',
-                    val: awaitingContact,
-                    color: 'text-amber-400',
-                    stageFilter: 'Novos' as QuickFilterType,
-                  },
-                  {
-                    label: 'Clientes contatados',
-                    val: contactedCount,
-                    color: 'text-blue-400',
-                    stageFilter: 'Interessados' as QuickFilterType,
-                  },
-                  {
-                    label: 'Propostas enviadas',
-                    val: proposalsSentCount,
-                    color: 'text-purple-400',
-                    stageFilter: 'Propostas' as QuickFilterType,
-                  },
-                  {
-                    label: 'Negociações ativas',
-                    val: inNegotiationCount,
-                    color: 'text-indigo-400',
-                    stageFilter: 'Propostas' as QuickFilterType,
-                  },
-                  {
-                    label: 'Contratos fechados',
-                    val: closedContracts.length,
-                    color: 'text-emerald-400',
-                    stageFilter: 'Fechados' as QuickFilterType,
-                  },
-                  {
-                    label: 'Clientes perdidos',
-                    val: lostClients.length,
-                    color: 'text-rose-400',
-                    stageFilter: 'Perdidos' as QuickFilterType,
-                  },
-                ].map((stat) => (
-                  <button
-                    key={stat.label}
-                    onClick={() => {
-                      setQuickFilter(stat.stageFilter);
-                      setActiveTab('kanban');
-                    }}
-                    className="p-3.5 rounded-xl border border-slate-800 bg-slate-900/50 hover:border-slate-700 text-left transition cursor-pointer"
-                  >
-                    <span className="text-[11px] text-slate-400 block truncate">
-                      {stat.label}
-                    </span>
-                    <span className={`font-mono text-xl font-bold ${stat.color}`}>
-                      {stat.val}
-                    </span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Lower Dashboard Grid: Agendamentos do Dia, Próximas Tarefas, Ranking da Equipe */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Agendamentos do Dia */}
-                <div className="lg:col-span-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col justify-between">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-sm font-display font-bold text-white flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-indigo-400" />
-                        <span>Agendamentos do Dia</span>
-                      </h3>
+                    <h2 className="font-display font-bold text-slate-900">Próximos clientes</h2>
+                    <p className="text-xs text-slate-500">Acesso rápido aos clientes da sua carteira.</p>
+                  </div>
+                  <button
+                    onClick={() => goToTab('carteira')}
+                    className="text-xs font-semibold text-indigo-600"
+                  >
+                    Ver carteira
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {crmState.leads
+                    .filter((lead) => lead.responsibleId === currentUser.id && lead.stage !== 'FECHADO' && lead.stage !== 'PERDIDO')
+                    .slice(0, 4)
+                    .map((lead) => (
                       <button
-                        onClick={() => setActiveTab('agenda')}
-                        className="text-xs text-indigo-400 hover:underline cursor-pointer"
+                        key={lead.id}
+                        onClick={() => setSelectedLeadId(lead.id)}
+                        className="w-full flex items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 text-left hover:bg-slate-50"
                       >
-                        Ver agenda →
+                        <div className="min-w-0">
+                          <div className="font-semibold text-sm text-slate-900 truncate">{lead.company}</div>
+                          <div className="text-xs text-slate-500 truncate">{lead.nextAction || 'Definir próxima ação'}</div>
+                        </div>
+                        <span className="shrink-0 text-xs font-semibold text-indigo-600">Abrir →</span>
                       </button>
+                    ))}
+
+                  {crmState.leads.filter((lead) => lead.responsibleId === currentUser.id && lead.stage !== 'FECHADO' && lead.stage !== 'PERDIDO').length === 0 && (
+                    <div className="rounded-xl bg-slate-50 p-4 text-center text-sm text-slate-500">
+                      Você ainda não tem clientes ativos. Vá em Oportunidades para assumir o primeiro.
                     </div>
-
-                    <div className="space-y-2.5">
-                      {crmState.appointments.slice(0, 5).map((app) => (
-                        <div
-                          key={app.id}
-                          className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2 text-xs"
-                        >
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-indigo-400">
-                                {app.time}
-                              </span>
-                              <span className="font-semibold text-white truncate">
-                                {app.title}
-                              </span>
-                            </div>
-                            <span className="text-[11px] text-slate-400">
-                              {app.leadCompany} • Resp: {app.responsibleName}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() =>
-                              handleToggleAppointment(
-                                app.id,
-                                app.status === 'concluido' ? 'pendente' : 'concluido'
-                              )
-                            }
-                            className={`px-2 py-1 rounded text-[10px] font-mono cursor-pointer ${
-                              app.status === 'concluido'
-                                ? 'bg-emerald-500/20 text-emerald-300'
-                                : 'bg-slate-800 text-slate-300'
-                            }`}
-                          >
-                            {app.status === 'concluido' ? 'Feito' : 'Pendente'}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Próximas Tarefas & Clientes Aguardando Captura */}
-                <div className="lg:col-span-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-display font-bold text-white flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-amber-400" />
-                      <span>Próximas Tarefas Comerciais</span>
-                    </h3>
-                    <button
-                      onClick={() => setActiveTab('tarefas')}
-                      className="text-xs text-indigo-400 hover:underline cursor-pointer"
-                    >
-                      Ver todas →
-                    </button>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {visibleLeads
-                      .filter((l) => l.stage !== 'FECHADO' && l.stage !== 'PERDIDO')
-                      .slice(0, 5)
-                      .map((lead) => (
-                        <div
-                          key={lead.id}
-                          onClick={() => setSelectedLeadId(lead.id)}
-                          className="p-3 rounded-xl bg-slate-950 border border-slate-800 hover:border-indigo-500/50 transition cursor-pointer"
-                        >
-                          <div className="flex items-center justify-between text-xs mb-1">
-                            <span className="font-bold text-white">{lead.company}</span>
-                            <span className="font-mono text-[11px] text-amber-400">
-                              {lead.responsibleName}
-                            </span>
-                          </div>
-                          <p className="text-xs text-slate-300 truncate">{lead.nextAction}</p>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-
-                {/* Ranking de Atendimentos da Equipe (Daniel, Arthur, Pedro) */}
-                <div className="lg:col-span-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-display font-bold text-white flex items-center gap-2">
-                      <Award className="w-4 h-4 text-emerald-400" />
-                      <span>Ranking de Atendimentos da Equipe</span>
-                    </h3>
-                    <button
-                      onClick={() => setActiveTab('relatorios')}
-                      className="text-xs text-indigo-400 hover:underline cursor-pointer"
-                    >
-                      Relatório →
-                    </button>
-                  </div>
-
-                  <div className="space-y-3">
-                    {crmState.users.map((member, idx) => {
-                      const mLeads = crmState.leads.filter(
-                        (l) => l.responsibleId === member.id
-                      );
-                      const mClosed = mLeads.filter((l) => l.stage === 'FECHADO');
-                      const mRevenue = mClosed.reduce(
-                        (acc, l) =>
-                          acc + (l.closedDetails?.soldValue || l.estimatedValue || 0),
-                        0
-                      );
-                      return (
-                        <div
-                          key={member.id}
-                          className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="w-6 h-6 rounded-lg bg-slate-900 border border-slate-800 font-mono text-xs font-bold text-indigo-400 flex items-center justify-center">
-                              #{idx + 1}
-                            </span>
-                            <div>
-                              <h4 className="font-display font-bold text-xs text-white">
-                                {member.name}
-                              </h4>
-                              <span className="text-[11px] text-slate-400">
-                                {mLeads.length} clientes • {mClosed.length} fechados
-                              </span>
-                            </div>
-                          </div>
-                          <span className="font-mono text-xs font-bold text-emerald-400">
-                            R$ {mRevenue.toLocaleString('pt-BR')}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  )}
                 </div>
               </div>
+
+              {currentUser.role === 'admin' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => goToTab('relatorios')}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left"
+                  >
+                    <div className="text-xs text-slate-500">Receita fechada</div>
+                    <div className="mt-1 font-mono text-lg font-bold text-emerald-600">
+                      R$ {closedRevenue.toLocaleString('pt-BR')}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => goToTab('relatorios')}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 text-left"
+                  >
+                    <div className="text-xs text-slate-500">Negociações ativas</div>
+                    <div className="mt-1 font-mono text-lg font-bold text-slate-900">{inNegotiationCount}</div>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -1310,7 +1177,51 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-x-auto">
+              <div className="md:hidden space-y-3">
+                {availableLeads.map((lead) => (
+                  <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="font-display font-bold text-slate-900 truncate">{lead.company}</h3>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {lead.neighborhood || lead.city} • {lead.segment}
+                        </p>
+                      </div>
+                      {lead.sourceVerifiedAt && (
+                        <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Validado
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mt-3 rounded-xl bg-slate-50 p-3">
+                      <div className="text-[11px] text-slate-500">Serviço sugerido</div>
+                      <div className="mt-0.5 text-sm font-semibold text-indigo-700">{lead.serviceInterest}</div>
+                      {lead.estimatedValue > 0 && (
+                        <div className="mt-1 text-xs font-mono font-bold text-emerald-600">
+                          R$ {lead.estimatedValue.toLocaleString('pt-BR')}
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleClaimLead(lead)}
+                      className="mt-3 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm"
+                    >
+                      Assumir e abrir minha carteira
+                    </button>
+                  </div>
+                ))}
+
+                {availableLeads.length === 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+                    Nenhuma oportunidade disponível agora.
+                  </div>
+                )}
+              </div>
+
+              <div className="hidden md:block rounded-2xl border border-slate-800 bg-slate-900/60 overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 font-mono uppercase">
@@ -1492,7 +1403,92 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-white overflow-x-auto">
+              <div className="md:hidden space-y-3">
+                {portfolioLeads.map((lead) => {
+                  const stageMeta = KANBAN_STAGES.find((stage) => stage.id === lead.stage) || KANBAN_STAGES[0];
+                  return (
+                    <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="font-display font-bold text-slate-900 truncate">{lead.company}</h3>
+                          <p className="text-xs text-slate-500 truncate">{lead.serviceInterest}</p>
+                        </div>
+                        <span className={`shrink-0 px-2 py-1 rounded-md border text-[10px] font-semibold ${stageMeta.badgeClass}`}>
+                          {stageMeta.label}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        {lead.phone && (
+                          <a
+                            href={`tel:${lead.phone.replace(/[^\d+]/g, '')}`}
+                            className="rounded-xl bg-sky-600 px-3 py-2.5 text-center text-sm font-semibold text-white"
+                          >
+                            Ligar
+                          </a>
+                        )}
+                        {lead.whatsapp ? (
+                          <button
+                            onClick={() => setWhatsAppLead(lead)}
+                            className="rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white"
+                          >
+                            WhatsApp
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setSelectedLeadId(lead.id)}
+                            className="rounded-xl bg-slate-100 px-3 py-2.5 text-sm font-semibold text-slate-700"
+                          >
+                            Ver contato
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="mt-3">
+                        <label className="text-[11px] font-semibold text-slate-500">Alterar etapa</label>
+                        <select
+                          value={lead.stage}
+                          onChange={(event) => handleMoveStage(lead, event.target.value as KanbanStage)}
+                          className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-800"
+                        >
+                          {KANBAN_STAGES.map((stage) => (
+                            <option key={stage.id} value={stage.id}>{stage.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => setAppointmentLead(lead)}
+                          className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700"
+                        >
+                          Agendar retorno
+                        </button>
+                        <button
+                          onClick={() => setSelectedLeadId(lead.id)}
+                          className="flex-1 rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white"
+                        >
+                          Abrir ficha
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {portfolioLeads.length === 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+                    <div className="font-display font-bold text-slate-700">Sua carteira está vazia.</div>
+                    <button
+                      onClick={() => goToTab('leads')}
+                      className="mt-4 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white"
+                    >
+                      Ver oportunidades
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="hidden md:block rounded-2xl border border-slate-200 bg-white overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="border-b border-slate-200 bg-slate-50 text-slate-500 font-mono uppercase">
@@ -1767,6 +1763,47 @@ export default function App() {
           )}
         </main>
       </div>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
+        <div className="grid grid-cols-5 gap-1">
+          {[
+            { id: 'dashboard' as NavTab, label: 'Início', icon: LayoutDashboard },
+            { id: 'leads' as NavTab, label: 'Novos', icon: Users, badge: availableLeads.length },
+            { id: 'carteira' as NavTab, label: 'Carteira', icon: Award, badge: myPortfolioCount },
+            { id: 'agenda' as NavTab, label: 'Agenda', icon: Calendar },
+          ].map((item) => {
+            const Icon = item.icon;
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => goToTab(item.id)}
+                className={`relative flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold ${
+                  active ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span>{item.label}</span>
+                {'badge' in item && item.badge !== undefined && item.badge > 0 && (
+                  <span className="absolute right-2 top-1 min-w-4 rounded-full bg-indigo-600 px-1 text-[9px] leading-4 text-white">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          <button
+            onClick={() => {
+              setShowMoreTools(true);
+              setMobileMenuOpen(true);
+            }}
+            className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-slate-500"
+          >
+            <Menu className="w-5 h-5" />
+            <span>Mais</span>
+          </button>
+        </div>
+      </nav>
 
       {/* =====================================================================
           GLOBAL MODALS & DRAWERS
