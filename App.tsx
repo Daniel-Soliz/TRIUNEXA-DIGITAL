@@ -525,6 +525,40 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
     }
   };
 
+  const handleClaimAndQuickWhatsApp = async (lead: Lead) => {
+    if (!currentUser || !lead.whatsapp) return;
+
+    const cleanPhone = lead.whatsapp.replace(/\D/g, '');
+    const phone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    const message = buildQuickWhatsAppMessage(lead);
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    const whatsappWindow = window.open('', '_blank');
+
+    try {
+      await handleUpdateLead(lead.id, {
+        responsibleId: currentUser.id,
+        responsibleName: currentUser.name,
+      });
+
+      setResponsibleFilter(currentUser.id);
+
+      if (whatsappWindow) {
+        whatsappWindow.location.href = waUrl;
+      } else {
+        window.location.href = waUrl;
+      }
+
+      await handleAddInteraction(
+        lead.id,
+        'whatsapp',
+        'Cliente assumido e WhatsApp aberto em 1 clique com apresentação da DS Digital, portfólio e cartaz.'
+      );
+    } catch (error) {
+      if (whatsappWindow) whatsappWindow.close();
+      console.error('Falha ao assumir e abrir WhatsApp:', error);
+    }
+  };
+
   const handleCreateAppointment = async (appointment: {
     leadId: string;
     responsibleId: string;
@@ -1274,10 +1308,14 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
                         Ver análise
                       </button>
                       <button
-                        onClick={() => handleClaimLead(lead)}
-                        className="rounded-xl bg-indigo-600 px-3 py-3 text-sm font-bold text-white shadow-sm"
+                        onClick={() =>
+                          lead.whatsapp
+                            ? void handleClaimAndQuickWhatsApp(lead)
+                            : handleClaimLead(lead)
+                        }
+                        className="rounded-xl bg-emerald-600 px-3 py-3 text-sm font-bold text-white shadow-sm"
                       >
-                        Assumir cliente
+                        {lead.whatsapp ? 'Assumir + WhatsApp' : 'Assumir cliente'}
                       </button>
                     </div>
                   </div>
@@ -1364,13 +1402,25 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
                                 {lead.responsibleName}
                               </span>
                             ) : (
-                              <button
-                                onClick={() => handleClaimLead(lead)}
-                                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center gap-1 cursor-pointer"
-                              >
-                                <Hand className="w-3 h-3" />
-                                <span>ASSUMIR CLIENTE</span>
-                              </button>
+                              <div className="flex flex-col gap-1.5">
+                                {lead.whatsapp && (
+                                  <button
+                                    onClick={() => void handleClaimAndQuickWhatsApp(lead)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1 cursor-pointer"
+                                    title="Assumir cliente e abrir o WhatsApp com a apresentação pronta"
+                                  >
+                                    <MessageSquare className="w-3 h-3" />
+                                    <span>ASSUMIR + WHATSAPP</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => handleClaimLead(lead)}
+                                  className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Hand className="w-3 h-3" />
+                                  <span>SÓ ASSUMIR</span>
+                                </button>
+                              </div>
                             )}
                           </td>
                           <td
@@ -1403,7 +1453,7 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
                               </div>
                             ) : (
                               <span className="text-[11px] font-medium text-slate-500">
-                                Assuma para liberar contato
+                                Use “Assumir + WhatsApp” para iniciar em 1 clique
                               </span>
                             )}
                           </td>
