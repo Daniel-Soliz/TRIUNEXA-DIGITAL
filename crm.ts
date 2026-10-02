@@ -29,14 +29,14 @@ export interface User {
 }
 
 export type KanbanStage =
-  | 'NOVOS LEADS'
-  | 'AGUARDANDO CONTATO'
-  | 'CONTATO REALIZADO'
-  | 'INTERESSADO'
-  | 'PROPOSTA ENVIADA'
+  | 'NOVO LEAD'
+  | 'ASSUMIDO'
+  | 'CONTATO INICIADO'
+  | 'RESPONDEU'
+  | 'PROPOSTA'
   | 'NEGOCIAÇÃO'
-  | 'AGUARDANDO RESPOSTA'
   | 'FECHADO'
+  | 'SEM RETORNO'
   | 'PERDIDO';
 
 export const KANBAN_STAGES: {
@@ -48,75 +48,75 @@ export const KANBAN_STAGES: {
   dotClass: string;
 }[] = [
   {
-    id: 'NOVOS LEADS',
-    label: 'Novos Leads',
-    description: 'Clientes que acabaram de entrar',
+    id: 'NOVO LEAD',
+    label: 'Novo lead',
+    description: 'Oportunidades que acabaram de entrar',
     color: '#38bdf8',
-    badgeClass: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+    badgeClass: 'bg-sky-500/15 text-sky-700 border-sky-500/30',
     dotClass: 'bg-sky-400',
   },
   {
-    id: 'AGUARDANDO CONTATO',
-    label: 'Aguardando Contato',
-    description: 'Ainda não houve tentativa de contato',
+    id: 'ASSUMIDO',
+    label: 'Assumido',
+    description: 'Entrou na carteira de um vendedor',
     color: '#fbbf24',
-    badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+    badgeClass: 'bg-amber-500/15 text-amber-700 border-amber-500/30',
     dotClass: 'bg-amber-400',
   },
   {
-    id: 'CONTATO REALIZADO',
-    label: 'Contato Realizado',
-    description: 'A equipe já conversou com o cliente',
+    id: 'CONTATO INICIADO',
+    label: 'Contato iniciado',
+    description: 'WhatsApp ou abordagem já iniciada',
     color: '#60a5fa',
-    badgeClass: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+    badgeClass: 'bg-blue-500/15 text-blue-700 border-blue-500/30',
     dotClass: 'bg-blue-400',
   },
   {
-    id: 'INTERESSADO',
-    label: 'Interessado',
-    description: 'O cliente demonstrou interesse',
+    id: 'RESPONDEU',
+    label: 'Respondeu',
+    description: 'O cliente respondeu à abordagem',
     color: '#f97316',
-    badgeClass: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
+    badgeClass: 'bg-orange-500/15 text-orange-700 border-orange-500/30',
     dotClass: 'bg-orange-400',
   },
   {
-    id: 'PROPOSTA ENVIADA',
-    label: 'Proposta Enviada',
-    description: 'Orçamento ou proposta comercial enviada',
+    id: 'PROPOSTA',
+    label: 'Proposta',
+    description: 'Proposta ou orçamento apresentado',
     color: '#a855f7',
-    badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+    badgeClass: 'bg-purple-500/15 text-purple-700 border-purple-500/30',
     dotClass: 'bg-purple-400',
   },
   {
     id: 'NEGOCIAÇÃO',
     label: 'Negociação',
-    description: 'Cliente está avaliando valores ou condições',
+    description: 'Cliente avaliando valores ou condições',
     color: '#6366f1',
-    badgeClass: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+    badgeClass: 'bg-indigo-500/15 text-indigo-700 border-indigo-500/30',
     dotClass: 'bg-indigo-400',
-  },
-  {
-    id: 'AGUARDANDO RESPOSTA',
-    label: 'Aguardando Resposta',
-    description: 'A equipe está aguardando retorno',
-    color: '#eab308',
-    badgeClass: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',
-    dotClass: 'bg-yellow-400',
   },
   {
     id: 'FECHADO',
     label: 'Fechado',
-    description: 'Cliente aceitou contratar a TRUINEXA DIGITAL',
+    description: 'Cliente aceitou contratar',
     color: '#10b981',
-    badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+    badgeClass: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30',
     dotClass: 'bg-emerald-400',
+  },
+  {
+    id: 'SEM RETORNO',
+    label: 'Sem retorno',
+    description: 'Contato feito, aguardando ou sem resposta',
+    color: '#eab308',
+    badgeClass: 'bg-yellow-500/15 text-yellow-700 border-yellow-500/30',
+    dotClass: 'bg-yellow-400',
   },
   {
     id: 'PERDIDO',
     label: 'Perdido',
-    description: 'Cliente recusou ou negociação não avançou',
+    description: 'Negociação encerrada',
     color: '#f43f5e',
-    badgeClass: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
+    badgeClass: 'bg-rose-500/15 text-rose-700 border-rose-500/30',
     dotClass: 'bg-rose-400',
   },
 ];
@@ -201,6 +201,13 @@ export interface Lead {
     type?: 'map' | 'website' | 'instagram' | 'directory' | 'other';
   }>;
   researchedAt?: string;
+  assignedAt?: string;
+  contactStartedAt?: string;
+  lastContactAt?: string;
+  opportunitySummary?: string;
+  recommendedService?: string;
+  recommendedBenefit?: string;
+  whatsappMessage?: string;
   email: string;
   instagram: string;
   website: string;
@@ -292,6 +299,7 @@ export interface ActivityLog {
   fromStage?: string;
   toStage?: string;
   details: string;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -353,6 +361,10 @@ export interface SystemConfig {
     autoFollowUpDays: number;
   };
   stalledAlertDays: number;
+  senderName: string;
+  brandName: string;
+  portfolioUrl: string;
+  presentationUrl: string;
 }
 
 export interface CRMState {
