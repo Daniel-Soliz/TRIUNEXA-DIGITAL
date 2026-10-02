@@ -882,10 +882,10 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   const [sending, setSending] = useState(false);
   const [sentFeedback, setSentFeedback] = useState<string | null>(null);
   const [options, setOptions] = useState<ProspectingMessageOptions>({
-    includePortfolio: true,
+    includePortfolio: false,
     mentionNeighborhood: true,
-    includePresentation: true,
-    includeRecommendedService: true,
+    includePresentation: false,
+    includeRecommendedService: false,
   });
 
   const formatTemplate = (raw: string, l: Lead) =>
@@ -949,17 +949,17 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
     setActiveStep('abertura');
     setSelectedTemplateId('');
     setOptions({
-      includePortfolio: true,
+      includePortfolio: false,
       mentionNeighborhood: true,
-      includePresentation: Boolean(settings.presentationUrl),
-      includeRecommendedService: true,
+      includePresentation: false,
+      includeRecommendedService: false,
     });
     setCustomMessage(
       generateProspectingMessage(lead, settings, {
-        includePortfolio: true,
+        includePortfolio: false,
         mentionNeighborhood: true,
-        includePresentation: Boolean(settings.presentationUrl),
-        includeRecommendedService: true,
+        includePresentation: false,
+        includeRecommendedService: false,
       })
     );
     setSentFeedback(null);
@@ -1146,7 +1146,7 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="w-4 h-4 text-indigo-600" />
-                <h3 className="text-sm font-bold text-slate-900">Mensagem personalizada</h3>
+                <h3 className="text-sm font-bold text-slate-900">Mensagem curta para iniciar a conversa</h3>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
