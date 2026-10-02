@@ -9,6 +9,12 @@
 
   body {
     font-family: var(--font-sans);
+    background: #f5f7fb;
+    color: #0f172a;
+  }
+
+  button, select, input {
+    -webkit-tap-highlight-color: transparent;
   }
 
   h1, h2, h3, .font-display {
