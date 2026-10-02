@@ -620,7 +620,7 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       const { data, error } = await supabase.from('truinexa_leads').insert(row).select('*').single();
       if (error) return errorResponse(error.message, 400);
       const lead = toLead(data);
-      await insertLog(profile, lead, 'Novo Lead Cadastrado', `${profile.name} cadastrou ${lead.company}.`);
+      await insertLog(profile, lead, 'lead_created', `${profile.name} cadastrou ${lead.company}.`);
       return jsonResponse(lead);
     }
 
@@ -706,9 +706,9 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
 
       if (previous.responsibleId !== lead.responsibleId && lead.responsibleId) {
         await insertNotification('cliente_assumido', 'Cliente adicionado à carteira', `${lead.company} agora está com ${lead.responsibleName}.`, lead.id);
-        await insertLog(profile, lead, 'Cliente Assumido', `${profile.name} adicionou ${lead.company} à carteira.`);
+        await insertLog(profile, lead, 'lead_assigned', `${profile.name} adicionou ${lead.company} à carteira.`);
       } else if (previous.stage !== lead.stage) {
-        await insertLog(profile, lead, 'Etapa Atualizada', `${lead.company}: ${previous.stage} → ${lead.stage}.`, previous.stage, lead.stage);
+        await insertLog(profile, lead, 'moved_stage', `${lead.company}: ${previous.stage} → ${lead.stage}.`, previous.stage, lead.stage);
       }
       return jsonResponse(lead);
     }
@@ -795,11 +795,22 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       }).select('*').single();
       if (error) return errorResponse(error.message, 400);
       if (body.autoAdvanceStage) {
+        const nextStage = body.autoAdvanceStage as KanbanStage;
         await supabase.from('truinexa_leads').update({
-          stage: body.autoAdvanceStage as KanbanStage,
+          stage: nextStage,
           stage_changed_at: new Date().toISOString(),
           last_interaction_at: new Date().toISOString(),
         }).eq('id', lead.id);
+        if (lead.stage !== nextStage) {
+          await insertLog(
+            profile,
+            lead,
+            'moved_stage',
+            `${lead.company}: ${lead.stage} → ${nextStage}.`,
+            lead.stage,
+            nextStage
+          );
+        }
       } else {
         await supabase.from('truinexa_leads').update({
           last_interaction_at: new Date().toISOString(),
