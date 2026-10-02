@@ -111,6 +111,7 @@ export default function App() {
 
   // Active Modals
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [editLeadId, setEditLeadId] = useState<string | null>(null);
   const [newLeadModalOpen, setNewLeadModalOpen] = useState(false);
   const [closeDealLead, setCloseDealLead] = useState<Lead | null>(null);
   const [lostDealLead, setLostDealLead] = useState<Lead | null>(null);
@@ -1563,12 +1564,15 @@ export default function App() {
                         </select>
                       </div>
 
-                      <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div className="mt-3 grid grid-cols-2 gap-2">
                         <button
-                          onClick={() => setWhatsAppLead(lead)}
-                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2.5 text-xs font-semibold text-emerald-700"
+                          onClick={() => {
+                            setEditLeadId(lead.id);
+                            setSelectedLeadId(lead.id);
+                          }}
+                          className="rounded-xl border border-indigo-200 bg-indigo-50 px-2 py-2.5 text-xs font-semibold text-indigo-700"
                         >
-                          Roteiros
+                          Editar
                         </button>
                         <button
                           onClick={() => setAppointmentLead(lead)}
@@ -1577,10 +1581,16 @@ export default function App() {
                           Agendar
                         </button>
                         <button
+                          onClick={() => setWhatsAppLead(lead)}
+                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2.5 text-xs font-semibold text-emerald-700"
+                        >
+                          Roteiros
+                        </button>
+                        <button
                           onClick={() => setSelectedLeadId(lead.id)}
                           className="rounded-xl bg-slate-900 px-2 py-2.5 text-xs font-semibold text-white"
                         >
-                          Ficha
+                          Ver lead
                         </button>
                       </div>
                     </div>
@@ -1693,6 +1703,15 @@ export default function App() {
                                 className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold cursor-pointer"
                               >
                                 Ver lead
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditLeadId(lead.id);
+                                  setSelectedLeadId(lead.id);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold cursor-pointer"
+                              >
+                                Editar
                               </button>
                               <select
                                 value={lead.stage}
@@ -1943,7 +1962,11 @@ export default function App() {
       ===================================================================== */}
       <LeadDetailModal
         lead={selectedLead}
-        onClose={() => setSelectedLeadId(null)}
+        startEditing={Boolean(selectedLeadId && editLeadId === selectedLeadId)}
+        onClose={() => {
+          setSelectedLeadId(null);
+          setEditLeadId(null);
+        }}
         currentUser={currentUser}
         users={crmState.users}
         services={crmState.services}
