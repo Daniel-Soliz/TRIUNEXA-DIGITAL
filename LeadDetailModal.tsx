@@ -19,6 +19,8 @@ import {
   Trash2,
   TrendingUp,
   FileText,
+  ExternalLink,
+  Search,
 } from 'lucide-react';
 import {
   Lead,
@@ -464,6 +466,114 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Pesquisa prévia da empresa */}
+            {(lead.companySummary ||
+              lead.opportunityReason ||
+              lead.address ||
+              lead.website ||
+              lead.instagramUrl ||
+              (lead.validationSources && lead.validationSources.length > 0)) && (
+              <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold flex items-center gap-1.5">
+                    <Search className="w-3.5 h-3.5" />
+                    Pesquisa da Empresa
+                  </h3>
+                  {lead.researchedAt && (
+                    <span className="text-[10px] font-mono text-slate-500">
+                      Pesquisado em {new Date(lead.researchedAt).toLocaleDateString('pt-BR')}
+                    </span>
+                  )}
+                </div>
+
+                {lead.companySummary && (
+                  <div>
+                    <span className="text-[11px] text-slate-500 block mb-1">Resumo encontrado</span>
+                    <p className="text-sm text-slate-200 leading-relaxed">{lead.companySummary}</p>
+                  </div>
+                )}
+
+                {lead.opportunityReason && (
+                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3">
+                    <span className="text-[11px] text-emerald-400 block mb-1">Por que pode ser uma oportunidade</span>
+                    <p className="text-xs text-slate-200 leading-relaxed">{lead.opportunityReason}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {lead.address && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lead.address)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-xl border border-slate-700 bg-slate-900 p-3 hover:border-sky-500/50 transition"
+                    >
+                      <div className="flex items-center gap-2 text-xs font-semibold text-sky-300">
+                        <MapPin className="w-4 h-4" />
+                        Ver no mapa
+                        <ExternalLink className="w-3 h-3 ml-auto" />
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-400 leading-relaxed">{lead.address}</p>
+                    </a>
+                  )}
+
+                  {lead.website && (
+                    <a
+                      href={lead.website}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-xl border border-slate-700 bg-slate-900 p-3 hover:border-indigo-500/50 transition"
+                    >
+                      <div className="flex items-center gap-2 text-xs font-semibold text-indigo-300">
+                        <Globe className="w-4 h-4" />
+                        Site encontrado
+                        <ExternalLink className="w-3 h-3 ml-auto" />
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500 truncate">{lead.website}</p>
+                    </a>
+                  )}
+
+                  {lead.instagramUrl && (
+                    <a
+                      href={lead.instagramUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-xl border border-slate-700 bg-slate-900 p-3 hover:border-pink-500/50 transition"
+                    >
+                      <div className="flex items-center gap-2 text-xs font-semibold text-pink-300">
+                        <Instagram className="w-4 h-4" />
+                        Instagram encontrado
+                        <ExternalLink className="w-3 h-3 ml-auto" />
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-500 truncate">
+                        {lead.instagram || lead.instagramUrl}
+                      </p>
+                    </a>
+                  )}
+                </div>
+
+                {lead.validationSources && lead.validationSources.length > 0 && (
+                  <div>
+                    <span className="text-[11px] text-slate-500 block mb-2">Fontes conferidas</span>
+                    <div className="flex flex-wrap gap-2">
+                      {lead.validationSources.map((source, index) => (
+                        <a
+                          key={`${source.url}-${index}`}
+                          href={source.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 px-2.5 py-1.5 text-[11px] text-slate-300 hover:border-indigo-500/50 hover:text-white"
+                        >
+                          {source.label}
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Informações Cadastrais Card */}
             <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-5 space-y-3">
