@@ -479,6 +479,8 @@ export default function App() {
   };
 
   const buildQuickWhatsAppMessage = (lead: Lead) => {
+    if (!currentUser) return '';
+
     const portfolioUrl = 'https://daniel-soliz.github.io/Daniel-Soliz-DS/';
     const posterUrl = new URL(
       `${import.meta.env.BASE_URL}marketing/ds-digital-cartaz.jpg`,
