@@ -17,9 +17,9 @@ const RULES: Array<{ match: string[]; rule: SegmentRule }> = [
   {
     match: ['barbearia', 'barber'],
     rule: {
-      opportunity: 'Facilitar agendamentos e atrair clientes da região.',
-      service: 'Site com portfólio, agendamento e WhatsApp',
-      benefit: 'facilitar o caminho entre conhecer os cortes e marcar um horário',
+      opportunity: 'Centralizar agendamento, apresentação dos cortes, atendimento e venda de produtos em uma estrutura própria da barbearia.',
+      service: 'Site completo para barbearia com agendamento, portfólio, loja e painel administrativo',
+      benefit: 'reduzir a dependência de ferramentas mensais de atendimento, facilitar agendamentos e ainda criar um novo canal para vender produtos',
     },
   },
   {
@@ -184,6 +184,73 @@ export function generateProspectingMessage(
     lead.recommendedService || lead.serviceInterest || rule.service;
   const opportunity = lead.opportunitySummary || rule.opportunity;
   const benefit = lead.recommendedBenefit || rule.benefit;
+
+  const isBarbershop =
+    normalizeText(lead.segment).includes('barbear') ||
+    normalizeText(lead.segment).includes('barber');
+
+  if (isBarbershop) {
+    const barberOpenings = [
+      `Olá, tudo bem? Meu nome é ${sender}, da ${brand}.`,
+      `Olá! Tudo bem? Aqui é ${sender}, da ${brand}.`,
+      `Oi, tudo bem? Sou ${sender}, da ${brand}.`,
+    ];
+
+    const barberDiscovery = [
+      `Encontrei a ${lead.company} pesquisando barbearias${location ? ` na região de ${location}` : ''} e vi uma oportunidade que pode simplificar bastante o atendimento de vocês.`,
+      `Estava pesquisando barbearias${location ? ` em ${location}` : ''} e encontrei a ${lead.company}. Pensei em uma estrutura que pode concentrar o atendimento digital em um lugar só.`,
+      `A ${lead.company} apareceu em uma pesquisa de barbearias${location ? ` da região de ${location}` : ''}. Vi uma possibilidade de deixar o processo de agendamento e venda mais organizado para vocês.`,
+    ];
+
+    const botParagraphs = [
+      'Muitas barbearias acabam pagando mensalmente por bot ou automação no WhatsApp só para organizar horários. Dependendo de como esse bot funciona hoje, dá para levar boa parte desse processo para um site próprio da barbearia e reduzir ou até eliminar essa mensalidade específica.',
+      'Vejo muitas barbearias usando bot pago no WhatsApp para agendamento. Em vários casos, o próprio site consegue assumir esse papel: o cliente escolhe o serviço, vê os horários disponíveis e inicia o agendamento sem depender de uma assinatura mensal desse tipo de ferramenta.',
+      'Se vocês usam algum bot mensal apenas para organizar agendamento e atendimento inicial, existe a possibilidade de substituir boa parte desse fluxo por uma estrutura própria no site, deixando o investimento concentrado no desenvolvimento do sistema.',
+    ];
+
+    const featureParagraphs = [
+      'A estrutura pode ter serviços e preços, agenda, portfólio dos cortes, horários e localização, botão direto para WhatsApp, loja de produtos da barbearia, carrinho/pedidos e um painel administrativo para controlar tudo.',
+      'Dá para reunir em um único site o catálogo de serviços, agendamento, trabalhos realizados, localização, horários, WhatsApp e também uma loja para vender pomadas, óleos, máquinas e outros produtos, com painel administrativo para vocês atualizarem.',
+      'Além do agendamento, o site pode funcionar como vitrine da barbearia e loja: mostrar cortes, serviços, preços, equipe, horários, localização, produtos à venda e pedidos, tudo gerenciado por um painel próprio.',
+    ];
+
+    const barberCtas = [
+      `Inclusive, já desenvolvo esse modelo de estrutura para barbearia. Posso te mostrar uma ideia específica para a ${lead.company}?`,
+      `Se fizer sentido, posso te mostrar rapidamente como esse modelo ficaria aplicado à ${lead.company}.`,
+      `Posso te mostrar em dois minutos como eu montaria isso para a ${lead.company}?`,
+    ];
+
+    const parts = [
+      choose(barberOpenings, seed),
+      '',
+      choose(barberDiscovery, seed, 1),
+      '',
+      choose(botParagraphs, seed, 2),
+      '',
+      choose(featureParagraphs, seed, 3),
+    ];
+
+    if (options.includeRecommendedService && recommendedService) {
+      parts.push('', `A solução que pensei para vocês é: ${recommendedService}.`);
+    }
+
+    if (options.includePortfolio && settings.portfolioUrl) {
+      parts.push('', 'Meu portfólio:', settings.portfolioUrl);
+    }
+
+    if (options.includePresentation && settings.presentationUrl) {
+      parts.push('', 'Apresentação rápida:', settings.presentationUrl);
+    }
+
+    parts.push(
+      '',
+      'O desenvolvimento do site é um projeto fechado; custos externos opcionais, como domínio, hospedagem ou serviços de terceiros, são separados quando necessários.',
+      '',
+      choose(barberCtas, seed, 4)
+    );
+
+    return parts.join('\n').trim();
+  }
 
   const openings = [
     `Olá, tudo bem? Meu nome é ${sender}, da ${brand}.`,
