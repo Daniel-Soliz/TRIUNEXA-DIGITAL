@@ -60,6 +60,11 @@ const defaultConfig: SystemConfig = {
     autoFollowUpDays: 2,
   },
   stalledAlertDays: 2,
+  senderName: 'Daniel Soliz',
+  brandName: 'DS Digital',
+  portfolioUrl: 'https://daniel-soliz.github.io/Daniel-Soliz-DS/',
+  presentationUrl:
+    'https://daniel-soliz.github.io/TRIUNEXA-DIGITAL/marketing/ds-digital-cartaz.jpg',
 };
 
 export function emptyCRMState(): CRMState {
@@ -118,6 +123,13 @@ function toLead(row: any): Lead {
     opportunityReason: row.opportunity_reason || undefined,
     validationSources: Array.isArray(row.validation_sources) ? row.validation_sources : [],
     researchedAt: row.researched_at || undefined,
+    assignedAt: row.claimed_at || undefined,
+    contactStartedAt: row.contact_started_at || undefined,
+    lastContactAt: row.last_contact_at || undefined,
+    opportunitySummary: row.opportunity_summary || undefined,
+    recommendedService: row.recommended_service || undefined,
+    recommendedBenefit: row.recommended_benefit || undefined,
+    whatsappMessage: row.whatsapp_message || undefined,
     email: row.email,
     instagram: row.instagram,
     website: row.website,
@@ -163,6 +175,13 @@ function leadPatch(updates: Partial<Lead>) {
     opportunityReason: 'opportunity_reason',
     validationSources: 'validation_sources',
     researchedAt: 'researched_at',
+    assignedAt: 'claimed_at',
+    contactStartedAt: 'contact_started_at',
+    lastContactAt: 'last_contact_at',
+    opportunitySummary: 'opportunity_summary',
+    recommendedService: 'recommended_service',
+    recommendedBenefit: 'recommended_benefit',
+    whatsappMessage: 'whatsapp_message',
     email: 'email',
     instagram: 'instagram',
     website: 'website',
@@ -254,6 +273,7 @@ function toActivityLog(row: any): ActivityLog {
     fromStage: row.from_stage || undefined,
     toStage: row.to_stage || undefined,
     details: row.details,
+    metadata: row.metadata || {},
     createdAt: row.created_at,
   };
 }
@@ -298,6 +318,10 @@ function toConfig(row: any): SystemConfig {
       ...(row.whatsapp_business_config || {}),
     },
     stalledAlertDays: row.stalled_alert_days || 2,
+    senderName: row.sender_name || defaultConfig.senderName,
+    brandName: row.brand_name || defaultConfig.brandName,
+    portfolioUrl: row.portfolio_url || defaultConfig.portfolioUrl,
+    presentationUrl: row.presentation_url || defaultConfig.presentationUrl,
   };
 }
 
@@ -432,7 +456,15 @@ export function subscribeToCRMChanges(onChange: () => void) {
   };
 }
 
-async function insertLog(profile: User, lead: Lead | null, action: string, details: string, fromStage?: string, toStage?: string) {
+async function insertLog(
+  profile: User,
+  lead: Lead | null,
+  action: string,
+  details: string,
+  fromStage?: string,
+  toStage?: string,
+  metadata: Record<string, unknown> = {}
+) {
   await supabase.from('truinexa_activity_logs').insert({
     user_id: profile.id,
     user_name: profile.name,
@@ -442,6 +474,7 @@ async function insertLog(profile: User, lead: Lead | null, action: string, detai
     from_stage: fromStage || null,
     to_stage: toStage || null,
     details,
+    metadata,
   });
 }
 
@@ -572,9 +605,13 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         closing_probability: Number(leadData.closingProbability || 30),
         responsible_id: responsibleId,
         responsible_name: responsibleName,
-        stage: (leadData.stage as KanbanStage) || 'NOVOS LEADS',
+        stage: (leadData.stage as KanbanStage) || 'NOVO LEAD',
         stage_changed_at: now,
         last_interaction_at: now,
+        opportunity_summary: leadData.opportunitySummary || '',
+        recommended_service: leadData.recommendedService || leadData.serviceInterest || '',
+        recommended_benefit: leadData.recommendedBenefit || '',
+        whatsapp_message: leadData.whatsappMessage || '',
         next_action: leadData.nextAction || 'Realizar primeiro contato comercial',
         next_contact_date: leadData.nextContactDate || now.slice(0, 10),
         observations: leadData.observations || '',
@@ -585,6 +622,63 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       const lead = toLead(data);
       await insertLog(profile, lead, 'Novo Lead Cadastrado', `${profile.name} cadastrou ${lead.company}.`);
       return jsonResponse(lead);
+    }
+
+    const claimMatch = path.match(/^\/api\/leads\/([^/]+)\/claim$/);
+    if (claimMatch && method === 'POST') {
+      const id = claimMatch[1];
+      const { data, error } = await supabase.rpc('truinexa_claim_lead', {
+        p_lead_id: id,
+      });
+      if (error) return errorResponse(error.message, 400);
+
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result?.success) {
+        return errorResponse(
+          result?.message || 'Este lead acabou de ser assumido por outro usuário.',
+          409
+        );
+      }
+
+      const lead = await getLead(id);
+      if (!lead) return errorResponse('Cliente não encontrado após assumir.', 404);
+      return jsonResponse(lead);
+    }
+
+    const contactMatch = path.match(/^\/api\/leads\/([^/]+)\/contact-started$/);
+    if (contactMatch && method === 'POST') {
+      const id = contactMatch[1];
+      const message = String(body.message || '');
+      const { data, error } = await supabase.rpc('truinexa_start_whatsapp_contact', {
+        p_lead_id: id,
+        p_message: message,
+      });
+      if (error) return errorResponse(error.message, 400);
+      return jsonResponse(toLead(data));
+    }
+
+    const activityMatch = path.match(/^\/api\/leads\/([^/]+)\/activity$/);
+    if (activityMatch && method === 'POST') {
+      const lead = await getLead(activityMatch[1]);
+      if (!lead) return errorResponse('Cliente não encontrado.', 404);
+      if (
+        profile.role !== 'admin' &&
+        lead.responsibleId !== profile.id
+      ) {
+        return errorResponse('Este lead pertence a outro usuário.', 403);
+      }
+      const action = String(body.action || '').trim();
+      if (!action) return errorResponse('Ação não informada.', 400);
+      await insertLog(
+        profile,
+        lead,
+        action,
+        String(body.details || action),
+        body.fromStage || undefined,
+        body.toStage || undefined,
+        body.metadata || {}
+      );
+      return jsonResponse({ ok: true });
     }
 
     const leadMatch = path.match(/^\/api\/leads\/([^/]+)$/);
@@ -816,6 +910,10 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       if (c.whatsappMode !== undefined) patch.whatsapp_mode = c.whatsappMode;
       if (c.whatsappBusinessConfig !== undefined) patch.whatsapp_business_config = c.whatsappBusinessConfig;
       if (c.stalledAlertDays !== undefined) patch.stalled_alert_days = c.stalledAlertDays;
+      if (c.senderName !== undefined) patch.sender_name = c.senderName;
+      if (c.brandName !== undefined) patch.brand_name = c.brandName;
+      if (c.portfolioUrl !== undefined) patch.portfolio_url = c.portfolioUrl;
+      if (c.presentationUrl !== undefined) patch.presentation_url = c.presentationUrl;
       const { data, error } = await supabase.from('truinexa_config')
         .update(patch).eq('id', true).select('*').single();
       if (error) return errorResponse(error.message, 400);
