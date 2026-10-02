@@ -915,9 +915,21 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     const price = `R$ ${l.estimatedValue.toLocaleString('pt-BR')}`;
 
     if (step === 'abertura') {
-      return `Olá, ${firstName}! Meu nome é ${currentUser.name}, falo pela TRUINEXA DIGITAL. Encontrei a ${l.company} enquanto pesquisava negócios de ${l.segment} em ${location} e vi uma oportunidade de fortalecer a presença digital de vocês.
+      const portfolioUrl = 'https://daniel-soliz.github.io/Daniel-Soliz-DS/';
+      const posterUrl = new URL(
+        `${import.meta.env.BASE_URL}marketing/ds-digital-cartaz.jpg`,
+        window.location.origin
+      ).href;
 
-Nós trabalhamos com ${l.serviceInterest} e a ideia seria ajudar a ${l.company} a ${benefit}.
+      return `Olá, ${firstName}! Meu nome é ${currentUser.name}, da DS Digital. Encontrei a ${l.company} enquanto pesquisava negócios de ${l.segment} em ${location} e vi uma oportunidade de fortalecer a presença digital de vocês.
+
+Trabalhamos com sites profissionais, aplicativos e sistemas, redes sociais, identidade visual, flyers e materiais digitais. Para a ${l.company}, pensei principalmente em ${l.serviceInterest}, com foco em ${benefit}.
+
+Portfólio:
+${portfolioUrl}
+
+Cartaz com nossos serviços:
+${posterUrl}
 
 Posso te mostrar em 2 minutos uma ideia prática para o negócio de vocês? Sem compromisso.`;
     }
