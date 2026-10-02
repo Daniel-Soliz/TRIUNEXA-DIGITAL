@@ -98,10 +98,9 @@ type QuickFilterType = (typeof QUICK_FILTERS)[number];
 export default function App() {
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<NavTab>('kanban');
   const [darkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [showMoreTools, setShowMoreTools] = useState(false);
   const [realtimePulse, setRealtimePulse] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
 
@@ -754,33 +753,27 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
     badge?: number;
   };
 
-  const primaryNavItems: NavigationItem[] = [
+  const railNavItems: NavigationItem[] = [
     { id: 'dashboard', label: 'Início', icon: LayoutDashboard },
-    { id: 'leads', label: 'Oportunidades', icon: Users, badge: availableLeads.length },
-    { id: 'carteira', label: 'Minha Carteira', icon: Award, badge: myPortfolioCount },
+    { id: 'kanban', label: 'Funil', icon: Kanban, badge: visibleLeads.length },
+    { id: 'leads', label: 'Novos', icon: Users, badge: availableLeads.length },
+    { id: 'carteira', label: 'Carteira', icon: Award, badge: myPortfolioCount },
     {
       id: 'agenda',
       label: 'Agenda',
       icon: Calendar,
       badge: crmState.appointments.filter((a) => a.status === 'pendente').length,
     },
-  ];
-
-  const moreNavItems: NavigationItem[] = [
-    { id: 'kanban', label: 'Funil de Vendas', icon: Kanban },
     { id: 'atendimento', label: 'Atendimento', icon: MessageSquare },
     { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
     { id: 'servicos', label: 'Serviços', icon: Briefcase },
     { id: 'projetos', label: 'Projetos', icon: FolderKanban, badge: crmState.projects.length },
     { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
-    {
-      id: 'notificacoes',
-      label: 'Notificações',
-      icon: Bell,
-      badge: unreadNotifications.length || undefined,
-    },
+  ];
+
+  const railBottomItems: NavigationItem[] = [
     { id: 'equipe', label: 'Equipe', icon: UserCog },
-    { id: 'configuracoes', label: 'Configurações', icon: Settings },
+    { id: 'configuracoes', label: 'Ajustes', icon: Settings },
   ];
 
   const goToTab = (tab: NavTab) => {
@@ -793,11 +786,25 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
     setMobileMenuOpen(false);
   };
 
+  const activeTitle: Record<NavTab, string> = {
+    dashboard: 'Visão geral',
+    leads: 'Oportunidades',
+    carteira: 'Minha carteira',
+    kanban: 'Oportunidades',
+    atendimento: 'Atendimento',
+    agenda: 'Agenda',
+    tarefas: 'Tarefas',
+    servicos: 'Serviços',
+    projetos: 'Projetos',
+    relatorios: 'Relatórios',
+    notificacoes: 'Notificações',
+    equipe: 'Equipe',
+    configuracoes: 'Configurações',
+  };
+
   return (
     <div
-      className={`min-h-screen flex ${
-        darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'
-      }`}
+      className="min-h-screen flex bg-[#f5f7fb] text-slate-900"
     >
       {mobileMenuOpen && (
         <button
@@ -807,176 +814,188 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
         />
       )}
 
-      {/* Navegação simples */}
+      {/* Barra lateral estilo CRM compacto */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-64 border-r flex flex-col transition-transform lg:translate-x-0 lg:static ${
+        className={`fixed inset-y-0 left-0 z-40 w-[232px] lg:w-[76px] bg-[#171d2d] border-r border-slate-800/80 flex flex-col transition-transform lg:translate-x-0 lg:static ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${
-          darkMode
-            ? 'bg-slate-900/95 border-slate-800/90'
-            : 'bg-white border-slate-200'
         }`}
       >
-        {/* Brand Header */}
-        <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="h-16 flex items-center px-3 lg:px-0 lg:justify-center border-b border-white/5">
+          <button
+            onClick={() => goToTab('kanban')}
+            className="flex items-center gap-3 lg:gap-0"
+            title="TRUINEXA DIGITAL"
+          >
             <img
               src={`${import.meta.env.BASE_URL}icons/truinexa-192.png`}
               alt="TRUINEXA DIGITAL"
-              className="w-9 h-9 rounded-xl object-cover shadow-md shadow-sky-500/20"
+              className="w-9 h-9 rounded-xl object-cover shadow-lg shadow-sky-500/15"
             />
-            <div>
-              <span className="font-display font-bold text-sm tracking-tight block leading-none">
-                TRUINEXA DIGITAL
-              </span>
-              <span className="text-[10px] font-mono text-indigo-400">
-                CRM COMERCIAL INTERNO
-              </span>
+            <div className="lg:hidden text-left">
+              <div className="text-sm font-display font-bold text-white">TRUINEXA</div>
+              <div className="text-[9px] tracking-[0.18em] text-sky-300">CRM COMERCIAL</div>
             </div>
-          </div>
+          </button>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white"
+            className="ml-auto lg:hidden p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Connected User Card (Section 31: "Bem-vindo, Daniel — Perfil: Administrador") */}
-        <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-9 h-9 rounded-xl bg-gradient-to-br ${currentUser.avatarColor} flex items-center justify-center text-white font-display font-bold text-sm shrink-0`}
-            >
-              {currentUser.name[0]}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-display font-bold text-slate-900 truncate">
-                Bem-vindo, {currentUser.name}
-              </p>
-              <p className="text-[11px] text-indigo-400 font-medium">
-                Perfil: {currentUser.roleTitle}
-              </p>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Navegação essencial */}
-        <nav className="flex-1 p-3 overflow-y-auto">
-          <div className="space-y-1">
-            {primaryNavItems.map((item) => {
-              const Icon = item.icon;
-              const active = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => goToTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium transition cursor-pointer ${
-                    active
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4.5 h-4.5 shrink-0" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span className={`px-2 py-0.5 rounded-md font-mono text-[10px] font-bold ${
-                      active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="my-3 border-t border-slate-200" />
-
-          <button
-            onClick={() => setShowMoreTools((value) => !value)}
-            className="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
-          >
-            <span className="flex items-center gap-3">
-              <Menu className="w-4.5 h-4.5" />
-              Mais ferramentas
-            </span>
-            <span className="text-xs text-slate-400">{showMoreTools ? '−' : '+'}</span>
-          </button>
-
-          {showMoreTools && (
-            <div className="mt-1 space-y-1 pl-2">
-              {moreNavItems.map((item) => {
-                const Icon = item.icon;
-                const active = activeTab === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => goToTab(item.id)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition ${
-                      active
-                        ? 'bg-slate-900 text-white'
-                        : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2.5">
-                      <Icon className="w-4 h-4" />
-                      {item.label}
-                    </span>
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="text-[10px] font-mono">{item.badge}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+          {railNavItems.map((item) => {
+            const Icon = item.icon;
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => goToTab(item.id)}
+                title={item.label}
+                className={`relative w-full flex items-center gap-3 lg:flex-col lg:gap-1 px-3 lg:px-1 py-2.5 lg:py-2 rounded-xl transition ${
+                  active
+                    ? 'bg-[#635bff] text-white shadow-lg shadow-indigo-950/25'
+                    : 'text-slate-400 hover:bg-white/7 hover:text-white'
+                }`}
+              >
+                <Icon className="w-[18px] h-[18px] shrink-0" />
+                <span className="text-xs lg:text-[9px] font-medium leading-none">{item.label}</span>
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className={`ml-auto lg:absolute lg:right-1 lg:top-1 min-w-4 h-4 px-1 rounded-full text-[9px] font-bold flex items-center justify-center ${
+                    active ? 'bg-white text-indigo-700' : 'bg-indigo-500 text-white'
+                  }`}>
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
-        {/* Sidebar Footer */}
-        <div className="p-4 border-t border-slate-800/80 space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-            <span className="flex items-center gap-1.5 text-emerald-400">
-              <Wifi className="w-3.5 h-3.5" />
-              <span>Real-Time Ativo</span>
-            </span>
-            {realtimePulse && <span>{realtimePulse}</span>}
+        <div className="px-2 pb-2 space-y-1 border-t border-white/5 pt-2">
+          {railBottomItems.map((item) => {
+            const Icon = item.icon;
+            const active = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => goToTab(item.id)}
+                title={item.label}
+                className={`w-full flex items-center gap-3 lg:flex-col lg:gap-1 px-3 lg:px-1 py-2.5 lg:py-2 rounded-xl transition ${
+                  active ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/7 hover:text-white'
+                }`}
+              >
+                <Icon className="w-[18px] h-[18px]" />
+                <span className="text-xs lg:text-[9px] font-medium leading-none">{item.label}</span>
+              </button>
+            );
+          })}
+
+          <div className="pt-2 mt-1 border-t border-white/5">
+            <div className="flex items-center gap-2 px-2 py-2 lg:justify-center">
+              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${currentUser.avatarColor} flex items-center justify-center text-white font-bold text-sm shrink-0`}>
+                {currentUser.name[0]}
+              </div>
+              <div className="min-w-0 lg:hidden">
+                <div className="text-xs font-semibold text-white truncate">{currentUser.name}</div>
+                <div className="text-[10px] text-emerald-400 flex items-center gap-1">
+                  <Wifi className="w-3 h-3" />
+                  Online {realtimePulse ? `• ${realtimePulse}` : ''}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 lg:flex-col lg:gap-1 px-3 lg:px-1 py-2 rounded-xl text-slate-500 hover:bg-rose-500/10 hover:text-rose-300 transition"
+              title="Sair"
+            >
+              <LogOut className="w-[17px] h-[17px]" />
+              <span className="text-xs lg:text-[9px]">Sair</span>
+            </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full py-2 px-3 rounded-xl border border-slate-800 hover:border-rose-500/40 hover:bg-rose-500/10 text-slate-400 hover:text-rose-300 text-xs font-medium flex items-center justify-center gap-2 transition cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Encerrar Sessão ({currentUser.name})</span>
-          </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Global Header & Advanced Search Bar (Section 12) */}
-        <header
-          className={`sticky top-0 z-30 border-b px-4 sm:px-6 py-3.5 flex flex-col gap-3 ${
-            darkMode
-              ? 'bg-slate-950/90 border-slate-800/90 backdrop-blur-xl'
-              : 'bg-white/90 border-slate-200 backdrop-blur-xl'
-          }`}
-        >
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 flex-1 min-w-[260px]">
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-2 rounded-xl border border-slate-800 text-slate-300"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
+        {/* Topo do CRM */}
+        <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
+          <div className="h-16 px-3 sm:px-5 flex items-center gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-lg border border-slate-200 text-slate-600"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
-              {/* Global Search Input */}
-              <div className="relative flex-1 max-w-xl">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="font-display text-lg font-bold text-slate-900 truncate">
+                  {activeTitle[activeTab]}
+                </h1>
+                {activeTab === 'kanban' && (
+                  <span className="hidden sm:inline-flex px-2 py-1 rounded-md bg-slate-100 text-[10px] font-semibold text-slate-500">
+                    Pipeline comercial
+                  </span>
+                )}
+              </div>
+              <p className="hidden sm:block text-[11px] text-slate-400">
+                TRUINEXA DIGITAL • dados em tempo real
+              </p>
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              <InstallAppButton
+                className="hidden md:inline-flex px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-600 text-xs font-semibold items-center gap-2 hover:bg-slate-50 transition"
+              />
+              <button
+                onClick={() => setNewLeadModalOpen(true)}
+                className="inline-flex px-3.5 py-2 rounded-lg bg-[#635bff] hover:bg-indigo-600 text-white text-xs font-semibold items-center gap-1.5 shadow-sm transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">Criar</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('notificacoes')}
+                className="relative p-2 rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadNotifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-indigo-600 text-white text-[9px] font-bold flex items-center justify-center">
+                    {unreadNotifications.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="px-3 sm:px-5 border-t border-slate-100">
+            <div className="min-h-12 flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 self-stretch">
+                {[
+                  { id: 'kanban' as NavTab, label: 'Quadro' },
+                  { id: 'leads' as NavTab, label: 'Lista' },
+                  { id: 'carteira' as NavTab, label: 'Carteira' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => goToTab(tab.id)}
+                    className={`h-full px-3 text-xs font-semibold border-b-2 transition ${
+                      activeTab === tab.id
+                        ? 'border-[#635bff] text-[#635bff]'
+                        : 'border-transparent text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="hidden sm:block h-6 w-px bg-slate-200 mx-1" />
+
+              <div className="relative flex-1 min-w-[210px] max-w-md">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -986,108 +1005,49 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
                       setActiveTab('kanban');
                     }
                   }}
-                  placeholder="Pesquisar por Nome, Empresa, Celular/WhatsApp, E-mail, Cidade, Bairro, Serviço, Responsável ou Status..."
-                  className={`w-full pl-10 pr-4 py-2 rounded-xl border text-xs focus:outline-none focus:border-indigo-500 transition ${
-                    darkMode
-                      ? 'bg-slate-900 border-slate-800 text-white placeholder:text-slate-500'
-                      : 'bg-slate-100 border-slate-300 text-slate-900'
-                  }`}
+                  placeholder="Buscar empresa, serviço, bairro ou WhatsApp..."
+                  className="w-full h-8 pl-9 pr-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:bg-white"
                 />
-                {searchQuery && (
-                  <button
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-white"
-                  >
-                    Limpar
-                  </button>
-                )}
               </div>
-            </div>
 
-            {/* Right Action Controls */}
-            <div className="flex items-center gap-2.5">
-              {/* Responsible Filter */}
               <select
                 value={responsibleFilter}
                 onChange={(e) => setResponsibleFilter(e.target.value)}
-                className={`hidden md:block px-3 py-2 rounded-xl border text-xs font-medium focus:outline-none focus:border-indigo-500 ${
-                  darkMode
-                    ? 'bg-slate-900 border-slate-800 text-slate-200'
-                    : 'bg-white border-slate-300 text-slate-800'
-                }`}
+                className="hidden md:block h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-medium text-slate-600 focus:outline-none"
               >
-                <option value="all">Responsável: Todos</option>
-                <option value="unassigned">🔓 Disponíveis p/ Captura</option>
+                <option value="all">Todos responsáveis</option>
+                <option value="unassigned">Sem responsável</option>
                 {crmState.users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    👤 {u.name}
-                  </option>
+                  <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
-
-              <InstallAppButton
-                className="hidden sm:inline-flex px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-semibold items-center gap-2 hover:bg-slate-50 transition cursor-pointer"
-              />
-
-              {/* New Lead Primary CTA */}
-              <button
-                onClick={() => setNewLeadModalOpen(true)}
-                className="hidden sm:flex px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold items-center gap-1.5 shadow-lg shadow-indigo-600/25 transition cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Novo Lead</span>
-              </button>
-
-              {/* Notification Bell */}
-              <button
-                onClick={() => setActiveTab('notificacoes')}
-                className="relative p-2 rounded-xl border border-slate-800 bg-slate-900/80 text-slate-300 hover:text-white cursor-pointer"
-              >
-                <Bell className="w-4 h-4" />
-                {unreadNotifications.length > 0 && (
-                  <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5" />
-                )}
-              </button>
-
-
             </div>
-          </div>
 
-          {/* Quick Filters Bar (Section 12) */}
-          <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-0.5">
-            {QUICK_FILTERS.map((flt) => {
-              const active = quickFilter === flt;
-              return (
-                <button
-                  key={flt}
-                  onClick={() => {
-                    setQuickFilter(flt);
-                    if (
-                      flt !== 'Todos' &&
-                      activeTab !== 'kanban' &&
-                      activeTab !== 'leads' &&
-                      activeTab !== 'carteira'
-                    ) {
-                      setActiveTab('kanban');
-                    }
-                  }}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium shrink-0 transition cursor-pointer ${
-                    active
-                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/50 font-semibold'
-                      : darkMode
-                      ? 'bg-slate-900/90 text-slate-400 border border-slate-800 hover:text-slate-200'
-                      : 'bg-slate-100 text-slate-600 border border-slate-200'
-                  }`}
-                >
-                  {flt}
-                </button>
-              );
-            })}
+            {(activeTab === 'kanban' || activeTab === 'leads' || activeTab === 'carteira') && (
+              <div className="pb-2 flex items-center gap-1.5 overflow-x-auto">
+                {QUICK_FILTERS.map((flt) => {
+                  const active = quickFilter === flt;
+                  return (
+                    <button
+                      key={flt}
+                      onClick={() => setQuickFilter(flt)}
+                      className={`shrink-0 px-2.5 py-1 rounded-md border text-[10px] font-semibold transition ${
+                        active
+                          ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      {flt}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </header>
 
         {/* Active View Body */}
-        <main className="flex-1 p-4 sm:p-6 pb-24 lg:pb-6 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-4 pb-24 lg:pb-4 overflow-x-hidden bg-[#f5f7fb]">
           {/* =================================================================
               INÍCIO SIMPLES — foco no que a equipe precisa fazer agora
           ================================================================= */}
@@ -1210,19 +1170,19 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
               VIEW 2: FUNIL DE VENDAS KANBAN (Sections 5, 6, 7)
           ================================================================= */}
           {activeTab === 'kanban' && (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h1 className="text-lg font-display font-bold">
-                    Quadro Kanban Comercial — Movimentação Dinâmica em Tempo Real
-                  </h1>
-                  <p className="text-xs text-slate-400">
-                    Arraste os cards entre as 9 etapas ou clique em um cliente para abrir o perfil
-                    completo e linha do tempo.
-                  </p>
-                </div>
-                <span className="text-xs font-mono text-slate-400">
-                  Exibindo {visibleLeads.length} oportunidades
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600">
+                  <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                  {visibleLeads.length} oportunidades
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600">
+                  <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+                  R$ {forecastedRevenue.toLocaleString('pt-BR')} em pipeline
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600">
+                  <Wifi className="w-3.5 h-3.5 text-emerald-500" />
+                  Atualização em tempo real
                 </span>
               </div>
 
@@ -1232,8 +1192,8 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
                 stalledAlertDays={crmState.config.stalledAlertDays}
                 onSelectLead={(lead) => setSelectedLeadId(lead.id)}
                 onMoveStage={handleMoveStage}
-                onClaimLead={handleClaimLead}
-                onOpenWhatsApp={(lead) => setWhatsAppLead(lead)}
+                onClaimLead={handleClaimAndQuickWhatsApp}
+                onOpenWhatsApp={(lead) => void handleQuickWhatsApp(lead)}
                 darkMode={darkMode}
               />
             </div>
