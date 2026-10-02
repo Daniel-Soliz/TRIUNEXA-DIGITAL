@@ -26,6 +26,7 @@ import {
   Lead,
   User,
   Interaction,
+  ActivityLog,
   ServiceItem,
   KANBAN_STAGES,
   KanbanStage,
@@ -39,6 +40,8 @@ interface LeadDetailModalProps {
   users: User[];
   services: ServiceItem[];
   interactions: Interaction[];
+  activityLogs: ActivityLog[];
+  onClaimLead: (lead: Lead) => Promise<void>;
   onUpdateLead: (leadId: string, updates: Partial<Lead>) => Promise<void>;
   onAddInteraction: (
     leadId: string,
@@ -60,6 +63,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   users,
   services,
   interactions,
+  activityLogs,
+  onClaimLead,
   onUpdateLead,
   onAddInteraction,
   onOpenWhatsApp,
@@ -87,6 +92,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   if (!lead) return null;
 
   const leadInteractions = interactions.filter((i) => i.leadId === lead.id);
+  const leadActivityLogs = activityLogs.filter((item) => item.leadId === lead.id);
   const stageMeta = KANBAN_STAGES.find((s) => s.id === lead.stage) || KANBAN_STAGES[0];
   const canDelete = currentUser.role === 'admin' || currentUser.permissions.canDeleteLeads;
   const canContact =
@@ -99,10 +105,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   };
 
   const handleClaimLead = async () => {
-    await onUpdateLead(lead.id, {
-      responsibleId: currentUser.id,
-      responsibleName: currentUser.name,
-    });
+    await onClaimLead(lead);
   };
 
   const handleStageSelect = async (newStage: KanbanStage) => {
@@ -127,12 +130,12 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
     if (noteType === 'proposta') {
       const val = Number(proposalAmount) || lead.estimatedValue;
       finalMessage = `Proposta de R$ ${val.toLocaleString('pt-BR')} enviada — ${noteText.trim()}`;
-      autoStage = 'PROPOSTA ENVIADA';
+      autoStage = 'PROPOSTA';
       await onUpdateLead(lead.id, { estimatedValue: val });
     } else if (noteType === 'ligacao') {
       finalMessage = `Ligação realizada: ${noteText.trim()}`;
-      if (lead.stage === 'NOVOS LEADS' || lead.stage === 'AGUARDANDO CONTATO') {
-        autoStage = 'CONTATO REALIZADO';
+      if (lead.stage === 'NOVO LEAD' || lead.stage === 'ASSUMIDO') {
+        autoStage = 'CONTATO INICIADO';
       }
     }
 
@@ -380,23 +383,20 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                 </div>
 
                 <div>
-                  <span className="text-slate-500 block mb-1">Serviço Desejado</span>
+                  <span className="text-slate-500 block mb-1">Solução Sugerida</span>
                   {editing ? (
-                    <select
-                      value={formState.serviceInterest || lead.serviceInterest}
+                    <input
+                      type="text"
+                      value={formState.recommendedService || lead.recommendedService || lead.serviceInterest}
                       onChange={(e) =>
-                        setFormState({ ...formState, serviceInterest: e.target.value })
+                        setFormState({ ...formState, recommendedService: e.target.value })
                       }
                       className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
-                    >
-                      {services.map((s) => (
-                        <option key={s.id} value={s.name}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   ) : (
-                    <span className="text-slate-100 font-medium block">{lead.serviceInterest}</span>
+                    <span className="text-slate-100 font-medium block">
+                      {lead.recommendedService || lead.serviceInterest}
+                    </span>
                   )}
                 </div>
 
@@ -448,6 +448,41 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                     <span className="block mt-0.5 text-[11px] text-slate-500">
                       Tipo: {lead.contactType === 'whatsapp' ? 'celular / WhatsApp' : 'celular'}
                     </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 pt-2 border-t border-slate-800/80 text-xs">
+                <div>
+                  <span className="text-slate-500 block mb-1">Oportunidade identificada</span>
+                  {editing ? (
+                    <textarea
+                      rows={2}
+                      value={formState.opportunitySummary || lead.opportunitySummary || ''}
+                      onChange={(e) =>
+                        setFormState({ ...formState, opportunitySummary: e.target.value })
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                    />
+                  ) : (
+                    <p className="text-slate-200">
+                      {lead.opportunitySummary || lead.opportunityReason || 'Não informado'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-slate-500 block mb-1">Benefício recomendado</span>
+                  {editing ? (
+                    <textarea
+                      rows={2}
+                      value={formState.recommendedBenefit || lead.recommendedBenefit || ''}
+                      onChange={(e) =>
+                        setFormState({ ...formState, recommendedBenefit: e.target.value })
+                      }
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white"
+                    />
+                  ) : (
+                    <p className="text-slate-200">{lead.recommendedBenefit || 'Não informado'}</p>
                   )}
                 </div>
               </div>
@@ -712,7 +747,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   <span>Histórico Completo do Cliente (Timeline)</span>
                 </h3>
                 <span className="text-[11px] font-mono text-slate-500">
-                  {leadInteractions.length} registros
+                  {leadInteractions.length + leadActivityLogs.length} registros
                 </span>
               </div>
 
@@ -732,6 +767,34 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                         </span>
                       </div>
                       <p className="text-xs text-slate-200 leading-relaxed">{item.message}</p>
+                    </div>
+                  </div>
+                ))}
+                {leadActivityLogs.map((item) => (
+                  <div key={`activity-${item.id}`} className="relative">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-slate-950 absolute -left-[25px] top-1.5" />
+                    <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800/90">
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400 mb-1">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="font-semibold text-emerald-300">{item.userName}</span>
+                          <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300">
+                            {item.action}
+                          </span>
+                        </div>
+                        <span className="font-mono shrink-0">
+                          {new Date(item.createdAt).toLocaleDateString('pt-BR')} •{' '}
+                          {new Date(item.createdAt).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-200 leading-relaxed">{item.details}</p>
+                      {item.fromStage && item.toStage && (
+                        <p className="mt-1 text-[10px] font-mono text-amber-300">
+                          {item.fromStage} → {item.toStage}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
