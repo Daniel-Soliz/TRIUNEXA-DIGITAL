@@ -35,6 +35,7 @@ import {
 
 interface LeadDetailModalProps {
   lead: Lead | null;
+  startEditing?: boolean;
   onClose: () => void;
   currentUser: User;
   users: User[];
@@ -58,6 +59,7 @@ interface LeadDetailModalProps {
 
 export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   lead,
+  startEditing = false,
   onClose,
   currentUser,
   users,
@@ -84,10 +86,10 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
     if (lead) {
       setFormState(lead);
       setProposalAmount(String(lead.estimatedValue || ''));
-      setEditing(false);
+      setEditing(startEditing);
       setConfirmDelete(false);
     }
-  }, [lead]);
+  }, [lead, startEditing]);
 
   if (!lead) return null;
 
