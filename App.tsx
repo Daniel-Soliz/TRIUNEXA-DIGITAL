@@ -478,6 +478,51 @@ export default function App() {
     });
   };
 
+  const buildQuickWhatsAppMessage = (lead: Lead) => {
+    const portfolioUrl = 'https://daniel-soliz.github.io/Daniel-Soliz-DS/';
+    const posterUrl = new URL(
+      `${import.meta.env.BASE_URL}marketing/ds-digital-cartaz.jpg`,
+      window.location.origin
+    ).href;
+    const contactName =
+      lead.name && lead.name.toLowerCase() !== 'contato comercial'
+        ? lead.name.split(' ')[0]
+        : 'tudo bem';
+
+    return `Olá, ${contactName}! Meu nome é ${currentUser.name}, da DS Digital. Encontrei a ${lead.company} enquanto pesquisava empresas da região e vi uma oportunidade de fortalecer a presença digital de vocês.
+
+Trabalho com sites profissionais, aplicativos e sistemas, redes sociais, identidade visual, flyers e materiais digitais.
+
+Para conhecer um pouco do meu trabalho:
+${portfolioUrl}
+
+Cartaz com os serviços da DS Digital:
+${posterUrl}
+
+Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso te explicar uma ideia rápida para o negócio de vocês, sem compromisso?`;
+  };
+
+  const handleQuickWhatsApp = async (lead: Lead) => {
+    if (!currentUser || !lead.whatsapp) return;
+
+    const cleanPhone = lead.whatsapp.replace(/\D/g, '');
+    const phone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    const message = buildQuickWhatsAppMessage(lead);
+    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+
+    window.open(waUrl, '_blank', 'noopener,noreferrer');
+
+    try {
+      await handleAddInteraction(
+        lead.id,
+        'whatsapp',
+        'WhatsApp aberto pelo botão de 1 clique com apresentação da DS Digital, portfólio e cartaz.'
+      );
+    } catch (error) {
+      console.error('Falha ao registrar contato rápido no histórico:', error);
+    }
+  };
+
   const handleCreateAppointment = async (appointment: {
     leadId: string;
     responsibleId: string;
@@ -1451,10 +1496,11 @@ export default function App() {
                         )}
                         {lead.whatsapp ? (
                           <button
-                            onClick={() => setWhatsAppLead(lead)}
+                            onClick={() => void handleQuickWhatsApp(lead)}
                             className="rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white"
+                            title="Abrir WhatsApp com apresentação, portfólio e cartaz prontos"
                           >
-                            WhatsApp
+                            WhatsApp 1 clique
                           </button>
                         ) : (
                           <button
@@ -1479,18 +1525,24 @@ export default function App() {
                         </select>
                       </div>
 
-                      <div className="mt-3 flex gap-2">
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <button
+                          onClick={() => setWhatsAppLead(lead)}
+                          className="rounded-xl border border-emerald-200 bg-emerald-50 px-2 py-2.5 text-xs font-semibold text-emerald-700"
+                        >
+                          Roteiros
+                        </button>
                         <button
                           onClick={() => setAppointmentLead(lead)}
-                          className="flex-1 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700"
+                          className="rounded-xl border border-slate-200 px-2 py-2.5 text-xs font-semibold text-slate-700"
                         >
-                          Agendar retorno
+                          Agendar
                         </button>
                         <button
                           onClick={() => setSelectedLeadId(lead.id)}
-                          className="flex-1 rounded-xl bg-slate-900 px-3 py-2.5 text-sm font-semibold text-white"
+                          className="rounded-xl bg-slate-900 px-2 py-2.5 text-xs font-semibold text-white"
                         >
-                          Abrir ficha
+                          Ficha
                         </button>
                       </div>
                     </div>
@@ -1579,13 +1631,22 @@ export default function App() {
                                 </a>
                               )}
                               {lead.whatsapp && (
-                                <button
-                                  onClick={() => setWhatsAppLead(lead)}
-                                  className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer"
-                                >
-                                  <MessageSquare className="w-3.5 h-3.5" />
-                                  WhatsApp
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => void handleQuickWhatsApp(lead)}
+                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer"
+                                    title="Abrir WhatsApp com apresentação, portfólio e cartaz prontos"
+                                  >
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                    WhatsApp 1 clique
+                                  </button>
+                                  <button
+                                    onClick={() => setWhatsAppLead(lead)}
+                                    className="px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold cursor-pointer"
+                                  >
+                                    Roteiros
+                                  </button>
+                                </>
                               )}
                               <button
                                 onClick={() => setSelectedLeadId(lead.id)}
