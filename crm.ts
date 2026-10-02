@@ -191,6 +191,16 @@ export interface Lead {
   sourceProvider?: string;
   sourceUrl?: string;
   sourceVerifiedAt?: string;
+  address?: string;
+  instagramUrl?: string;
+  companySummary?: string;
+  opportunityReason?: string;
+  validationSources?: Array<{
+    label: string;
+    url: string;
+    type?: 'map' | 'website' | 'instagram' | 'directory' | 'other';
+  }>;
+  researchedAt?: string;
   email: string;
   instagram: string;
   website: string;
