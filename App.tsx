@@ -905,7 +905,7 @@ export default function App() {
                       setActiveTab('kanban');
                     }
                   }}
-                  placeholder="Pesquisar por Nome, Empresa, Telefone, E-mail, Cidade, Bairro, Serviço, Responsável ou Status..."
+                  placeholder="Pesquisar por Nome, Empresa, Celular/WhatsApp, E-mail, Cidade, Bairro, Serviço, Responsável ou Status..."
                   className={`w-full pl-10 pr-4 py-2 rounded-xl border text-xs focus:outline-none focus:border-indigo-500 transition ${
                     darkMode
                       ? 'bg-slate-900 border-slate-800 text-white placeholder:text-slate-500'
@@ -1272,7 +1272,7 @@ export default function App() {
                             <div className="text-slate-400 flex flex-wrap items-center gap-1.5">
                               <span>{lead.name}</span>
                               <span>•</span>
-                              <span className="font-mono">{lead.phone || 'Sem telefone'}</span>
+                              <span className="font-mono">{lead.phone || 'Sem celular'}</span>
                               {lead.sourceVerifiedAt && lead.phone && (
                                 <span
                                   className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-500"
@@ -1543,7 +1543,7 @@ export default function App() {
                           <td className="py-3.5 px-4">
                             <div className="font-mono text-slate-700">{lead.phone || 'Sem telefone'}</div>
                             <div className="text-[11px] text-slate-500">
-                              {lead.whatsapp ? 'WhatsApp confirmado' : 'Contato por ligação'}
+                              {lead.whatsapp ? 'Celular / WhatsApp confirmado' : 'Contato indisponível'}
                             </div>
                           </td>
                           <td className="py-3.5 px-4">
