@@ -296,18 +296,18 @@ export default function App() {
             if (lead.serviceCategory !== 'Suporte Técnico') return false;
             break;
           case 'Novos':
-            if (lead.stage !== 'NOVOS LEADS' && lead.stage !== 'AGUARDANDO CONTATO')
+            if (lead.stage !== 'NOVO LEAD' && lead.stage !== 'ASSUMIDO')
               return false;
             break;
           case 'Interessados':
-            if (lead.stage !== 'INTERESSADO' && lead.stage !== 'CONTATO REALIZADO')
+            if (lead.stage !== 'RESPONDEU' && lead.stage !== 'CONTATO INICIADO')
               return false;
             break;
           case 'Propostas':
             if (
-              lead.stage !== 'PROPOSTA ENVIADA' &&
+              lead.stage !== 'PROPOSTA' &&
               lead.stage !== 'NEGOCIAÇÃO' &&
-              lead.stage !== 'AGUARDANDO RESPOSTA'
+              lead.stage !== 'SEM RETORNO'
             )
               return false;
             break;
@@ -422,12 +422,28 @@ export default function App() {
     await handleUpdateLead(lead.id, { stage: targetStage });
   };
 
-  const handleClaimLead = async (lead: Lead) => {
-    if (!currentUser) return;
-    await handleUpdateLead(lead.id, {
-      responsibleId: currentUser.id,
-      responsibleName: currentUser.name,
+  const claimLeadAtomically = async (lead: Lead): Promise<Lead | null> => {
+    if (!currentUser) return null;
+
+    const response = await crmFetch(`/api/leads/${lead.id}/claim`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actorId: currentUser.id }),
     });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      window.alert(payload?.error || 'Este lead acabou de ser assumido por outro usuário.');
+      return null;
+    }
+
+    return payload as Lead;
+  };
+
+  const handleClaimLead = async (lead: Lead) => {
+    const claimedLead = await claimLeadAtomically(lead);
+    if (!claimedLead || !currentUser) return;
+
     setResponsibleFilter(currentUser.id);
     setActiveTab('carteira');
   };
@@ -477,85 +493,46 @@ export default function App() {
     });
   };
 
-  const buildQuickWhatsAppMessage = (lead: Lead) => {
-    if (!currentUser) return '';
-
-    const portfolioUrl = 'https://daniel-soliz.github.io/Daniel-Soliz-DS/';
-    const posterUrl = new URL(
-      `${import.meta.env.BASE_URL}marketing/ds-digital-cartaz.jpg`,
-      window.location.origin
-    ).href;
-    const contactName =
-      lead.name && lead.name.toLowerCase() !== 'contato comercial'
-        ? lead.name.split(' ')[0]
-        : 'tudo bem';
-
-    return `Olá, ${contactName}! Meu nome é ${currentUser.name}, da DS Digital. Encontrei a ${lead.company} enquanto pesquisava empresas da região e vi uma oportunidade de fortalecer a presença digital de vocês.
-
-Trabalho com sites profissionais, aplicativos e sistemas, redes sociais, identidade visual, flyers e materiais digitais.
-
-Para conhecer um pouco do meu trabalho:
-${portfolioUrl}
-
-Cartaz com os serviços da DS Digital:
-${posterUrl}
-
-Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso te explicar uma ideia rápida para o negócio de vocês, sem compromisso?`;
-  };
-
-  const handleQuickWhatsApp = async (lead: Lead) => {
-    if (!currentUser || !lead.whatsapp) return;
-
-    const cleanPhone = lead.whatsapp.replace(/\D/g, '');
-    const phone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-    const message = buildQuickWhatsAppMessage(lead);
-    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-
-    window.open(waUrl, '_blank', 'noopener,noreferrer');
-
-    try {
-      await handleAddInteraction(
-        lead.id,
-        'whatsapp',
-        'WhatsApp aberto pelo botão de 1 clique com apresentação da DS Digital, portfólio e cartaz.'
-      );
-    } catch (error) {
-      console.error('Falha ao registrar contato rápido no histórico:', error);
-    }
+  const handleQuickWhatsApp = (lead: Lead) => {
+    setWhatsAppLead(lead);
   };
 
   const handleClaimAndQuickWhatsApp = async (lead: Lead) => {
-    if (!currentUser || !lead.whatsapp) return;
-
-    const cleanPhone = lead.whatsapp.replace(/\D/g, '');
-    const phone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-    const message = buildQuickWhatsAppMessage(lead);
-    const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-    const whatsappWindow = window.open('', '_blank');
-
-    try {
-      await handleUpdateLead(lead.id, {
-        responsibleId: currentUser.id,
-        responsibleName: currentUser.name,
-      });
-
-      setResponsibleFilter(currentUser.id);
-
-      if (whatsappWindow) {
-        whatsappWindow.location.href = waUrl;
-      } else {
-        window.location.href = waUrl;
-      }
-
-      await handleAddInteraction(
-        lead.id,
-        'whatsapp',
-        'Cliente assumido e WhatsApp aberto em 1 clique com apresentação da DS Digital, portfólio e cartaz.'
-      );
-    } catch (error) {
-      if (whatsappWindow) whatsappWindow.close();
-      console.error('Falha ao assumir e abrir WhatsApp:', error);
+    if (!lead.whatsapp) {
+      window.alert('Este lead não possui WhatsApp confirmado.');
+      return;
     }
+
+    const claimedLead = await claimLeadAtomically(lead);
+    if (!claimedLead || !currentUser) return;
+
+    setResponsibleFilter(currentUser.id);
+    setWhatsAppLead(claimedLead);
+  };
+
+  const handleStartWhatsAppContact = async (leadId: string, message: string) => {
+    const response = await crmFetch(`/api/leads/${leadId}/contact-started`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload?.error || 'Não foi possível registrar o início do contato.');
+    }
+    return payload as Lead;
+  };
+
+  const handleMessageCopied = async (leadId: string, message: string) => {
+    await crmFetch(`/api/leads/${leadId}/activity`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'message_copied',
+        details: 'Mensagem de prospecção copiada.',
+        metadata: { messageLength: message.length },
+      }),
+    });
   };
 
   const handleCreateAppointment = async (appointment: {
@@ -699,25 +676,25 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
   // Dashboard Metrics Calculation (Section 3)
   const todayStr = new Date().toISOString().slice(0, 10);
   const newLeadsToday = crmState.leads.filter(
-    (l) => l.createdAt.slice(0, 10) === todayStr || l.stage === 'NOVOS LEADS'
+    (l) => l.createdAt.slice(0, 10) === todayStr || l.stage === 'NOVO LEAD'
   ).length;
   const awaitingContact = crmState.leads.filter(
-    (l) => l.stage === 'NOVOS LEADS' || l.stage === 'AGUARDANDO CONTATO'
+    (l) => l.stage === 'NOVO LEAD' || l.stage === 'ASSUMIDO'
   ).length;
   const contactedCount = crmState.leads.filter(
     (l) =>
-      l.stage !== 'NOVOS LEADS' &&
-      l.stage !== 'AGUARDANDO CONTATO' &&
+      l.stage !== 'NOVO LEAD' &&
+      l.stage !== 'ASSUMIDO' &&
       l.stage !== 'PERDIDO'
   ).length;
   const proposalsSentCount = crmState.leads.filter(
     (l) =>
-      l.stage === 'PROPOSTA ENVIADA' ||
+      l.stage === 'PROPOSTA' ||
       l.stage === 'NEGOCIAÇÃO' ||
-      l.stage === 'AGUARDANDO RESPOSTA'
+      l.stage === 'SEM RETORNO'
   ).length;
   const inNegotiationCount = crmState.leads.filter(
-    (l) => l.stage === 'INTERESSADO' || l.stage === 'NEGOCIAÇÃO'
+    (l) => l.stage === 'RESPONDEU' || l.stage === 'NEGOCIAÇÃO'
   ).length;
   const closedContracts = crmState.leads.filter((l) => l.stage === 'FECHADO');
   const lostClients = crmState.leads.filter((l) => l.stage === 'PERDIDO');
@@ -1237,7 +1214,7 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
                     </div>
 
                     <div className="mt-3 rounded-xl bg-slate-50 p-3">
-                      <div className="text-[11px] text-slate-500">Serviço sugerido</div>
+                      <div className="text-[11px] text-slate-500">Solução sugerida</div>
                       <div className="mt-0.5 text-sm font-semibold text-indigo-700">{lead.serviceInterest}</div>
                       {lead.estimatedValue > 0 && (
                         <div className="mt-1 text-xs font-mono font-bold text-emerald-600">
@@ -1767,7 +1744,7 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
               onSelectLead={(lead) => setSelectedLeadId(lead.id)}
               onReactivateLostLead={async (lead) => {
                 await handleUpdateLead(lead.id, {
-                  stage: 'CONTATO REALIZADO',
+                  stage: 'CONTATO INICIADO',
                   closingProbability: 50,
                   nextAction: 'Cliente reativado do Arquivo de Perdidos para nova abordagem',
                 });
@@ -1907,6 +1884,7 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
         users={crmState.users}
         services={crmState.services}
         interactions={crmState.interactions}
+        activityLogs={crmState.activityLogs}
         onUpdateLead={handleUpdateLead}
         onAddInteraction={handleAddInteraction}
         onOpenWhatsApp={(lead) => setWhatsAppLead(lead)}
@@ -1948,9 +1926,12 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
         currentUser={currentUser}
         templates={crmState.whatsappTemplates}
         whatsappMode={crmState.config.whatsappMode}
+        settings={crmState.config}
         onRegisterWhatsAppContact={async (leadId, message, nextStage) => {
           await handleAddInteraction(leadId, 'whatsapp', message, nextStage);
         }}
+        onContactStarted={handleStartWhatsAppContact}
+        onMessageCopied={handleMessageCopied}
       />
 
       <QuickAppointmentModal
