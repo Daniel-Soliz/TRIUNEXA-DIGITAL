@@ -1885,6 +1885,7 @@ export default function App() {
         services={crmState.services}
         interactions={crmState.interactions}
         activityLogs={crmState.activityLogs}
+        onClaimLead={handleClaimLead}
         onUpdateLead={handleUpdateLead}
         onAddInteraction={handleAddInteraction}
         onOpenWhatsApp={(lead) => setWhatsAppLead(lead)}
