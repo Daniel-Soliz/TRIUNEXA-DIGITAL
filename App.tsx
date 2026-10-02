@@ -1203,14 +1203,36 @@ export default function App() {
                           R$ {lead.estimatedValue.toLocaleString('pt-BR')}
                         </div>
                       )}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        {lead.address && (
+                          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-slate-600">Mapa ✓</span>
+                        )}
+                        {lead.website && (
+                          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-slate-600">Site ✓</span>
+                        )}
+                        {lead.instagramUrl && (
+                          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-slate-600">Instagram ✓</span>
+                        )}
+                        {lead.whatsapp && (
+                          <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">WhatsApp ✓</span>
+                        )}
+                      </div>
                     </div>
 
-                    <button
-                      onClick={() => handleClaimLead(lead)}
-                      className="mt-3 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm"
-                    >
-                      Assumir e abrir minha carteira
-                    </button>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setSelectedLeadId(lead.id)}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700"
+                      >
+                        Ver análise
+                      </button>
+                      <button
+                        onClick={() => handleClaimLead(lead)}
+                        className="rounded-xl bg-indigo-600 px-3 py-3 text-sm font-bold text-white shadow-sm"
+                      >
+                        Assumir cliente
+                      </button>
+                    </div>
                   </div>
                 ))}
 
