@@ -155,8 +155,8 @@ export const AtendimentoModule: React.FC<{
             </span>
           </div>
           <p className="text-xs text-slate-300 mb-3">
-            O CRM monitora automaticamente clientes em <strong>PROPOSTA ENVIADA</strong> ou{' '}
-            <strong>AGUARDANDO RESPOSTA</strong> e gera recomendações de follow-up:
+            O CRM monitora automaticamente clientes em <strong>PROPOSTA</strong> ou{' '}
+            <strong>SEM RETORNO</strong> e gera recomendações de follow-up:
           </p>
           <div className="space-y-1.5 text-xs font-mono text-slate-400">
             <div>• 2 dias sem retorno → &ldquo;Realizar follow-up.&rdquo;</div>
@@ -945,20 +945,20 @@ export const ReportsModule: React.FC<{
   const [subTab, setSubTab] = useState<'geral' | 'individual' | 'arquivo_perdidos'>('geral');
 
   const totalLeads = state.leads.length;
-  const workedLeads = state.leads.filter((l) => l.stage !== 'NOVOS LEADS').length;
+  const workedLeads = state.leads.filter((l) => l.stage !== 'NOVO LEAD').length;
   const contactedLeads = state.leads.filter(
-    (l) => l.stage !== 'NOVOS LEADS' && l.stage !== 'AGUARDANDO CONTATO'
+    (l) => l.stage !== 'NOVO LEAD' && l.stage !== 'ASSUMIDO'
   ).length;
-  const interestedLeads = state.leads.filter((l) => l.stage === 'INTERESSADO').length;
+  const interestedLeads = state.leads.filter((l) => l.stage === 'RESPONDEU').length;
   const proposalsSent = state.leads.filter(
     (l) =>
-      l.stage === 'PROPOSTA ENVIADA' ||
+      l.stage === 'PROPOSTA' ||
       l.stage === 'NEGOCIAÇÃO' ||
-      l.stage === 'AGUARDANDO RESPOSTA' ||
+      l.stage === 'SEM RETORNO' ||
       l.stage === 'FECHADO'
   ).length;
   const inNegotiation = state.leads.filter(
-    (l) => l.stage === 'NEGOCIAÇÃO' || l.stage === 'AGUARDANDO RESPOSTA'
+    (l) => l.stage === 'NEGOCIAÇÃO' || l.stage === 'SEM RETORNO'
   ).length;
   const closedLeads = state.leads.filter((l) => l.stage === 'FECHADO');
   const lostLeads = state.leads.filter((l) => l.stage === 'PERDIDO');
@@ -1173,9 +1173,9 @@ export const ReportsModule: React.FC<{
             const memberContacts = state.interactions.filter((i) => i.userId === member.id);
             const memberProposals = memberLeads.filter(
               (l) =>
-                l.stage === 'PROPOSTA ENVIADA' ||
+                l.stage === 'PROPOSTA' ||
                 l.stage === 'NEGOCIAÇÃO' ||
-                l.stage === 'AGUARDANDO RESPOSTA' ||
+                l.stage === 'SEM RETORNO' ||
                 l.stage === 'FECHADO'
             );
             const memberClosed = memberLeads.filter((l) => l.stage === 'FECHADO');
@@ -1386,6 +1386,88 @@ export const TeamAndSettingsModule: React.FC<{
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+        <div>
+          <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold block">
+            Prospecção personalizada
+          </span>
+          <h3 className="text-base font-display font-bold text-white">
+            Identidade usada nas mensagens do WhatsApp
+          </h3>
+          <p className="mt-1 text-xs text-slate-400">
+            Altere estes dados sem precisar mexer no código. As novas mensagens usam a configuração salva no Supabase.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="text-xs text-slate-300">
+            <span className="block mb-1.5 font-medium">Nome de quem apresenta</span>
+            <input
+              key={`sender-${state.config.senderName}`}
+              defaultValue={state.config.senderName}
+              onBlur={(e) => {
+                const value = e.target.value.trim();
+                if (value && value !== state.config.senderName) {
+                  void onUpdateConfig({ senderName: value });
+                }
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+            />
+          </label>
+
+          <label className="text-xs text-slate-300">
+            <span className="block mb-1.5 font-medium">Marca</span>
+            <input
+              key={`brand-${state.config.brandName}`}
+              defaultValue={state.config.brandName}
+              onBlur={(e) => {
+                const value = e.target.value.trim();
+                if (value && value !== state.config.brandName) {
+                  void onUpdateConfig({ brandName: value });
+                }
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+            />
+          </label>
+
+          <label className="text-xs text-slate-300">
+            <span className="block mb-1.5 font-medium">URL do portfólio</span>
+            <input
+              type="url"
+              key={`portfolio-${state.config.portfolioUrl}`}
+              defaultValue={state.config.portfolioUrl}
+              onBlur={(e) => {
+                const value = e.target.value.trim();
+                if (value !== state.config.portfolioUrl) {
+                  void onUpdateConfig({ portfolioUrl: value });
+                }
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+            />
+          </label>
+
+          <label className="text-xs text-slate-300">
+            <span className="block mb-1.5 font-medium">URL pública do cartaz/apresentação</span>
+            <input
+              type="url"
+              key={`presentation-${state.config.presentationUrl}`}
+              defaultValue={state.config.presentationUrl}
+              onBlur={(e) => {
+                const value = e.target.value.trim();
+                if (value !== state.config.presentationUrl) {
+                  void onUpdateConfig({ presentationUrl: value });
+                }
+              }}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-indigo-500"
+            />
+          </label>
+        </div>
+
+        <p className="text-[11px] text-slate-500">
+          O cartaz é enviado como link público na mensagem. O navegador não simula anexo automático pelo wa.me.
+        </p>
+      </div>
+
       {/* Lead Distribution Rule (Section 16) */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
