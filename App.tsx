@@ -170,6 +170,11 @@ export default function App() {
                 autoFollowUpDays: 2,
               },
               stalledAlertDays: 2,
+              senderName: 'Daniel Soliz',
+              brandName: 'DS Digital',
+              portfolioUrl: 'https://daniel-soliz.github.io/Daniel-Soliz-DS/',
+              presentationUrl:
+                'https://daniel-soliz.github.io/TRIUNEXA-DIGITAL/marketing/ds-digital-cartaz.jpg',
             },
           });
         }
@@ -246,6 +251,11 @@ export default function App() {
           autoFollowUpDays: 2,
         },
         stalledAlertDays: 2,
+        senderName: 'Daniel Soliz',
+        brandName: 'DS Digital',
+        portfolioUrl: 'https://daniel-soliz.github.io/Daniel-Soliz-DS/',
+        presentationUrl:
+          'https://daniel-soliz.github.io/TRIUNEXA-DIGITAL/marketing/ds-digital-cartaz.jpg',
       },
     });
   };
