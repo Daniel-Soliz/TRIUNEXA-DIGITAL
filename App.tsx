@@ -1888,10 +1888,7 @@ Para a ${lead.company}, pensei principalmente em ${lead.serviceInterest}. Posso 
             );
           })}
           <button
-            onClick={() => {
-              setShowMoreTools(true);
-              setMobileMenuOpen(true);
-            }}
+            onClick={() => setMobileMenuOpen(true)}
             className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-slate-500"
           >
             <Menu className="w-5 h-5" />
