@@ -654,7 +654,9 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         p_message: message,
       });
       if (error) return errorResponse(error.message, 400);
-      return jsonResponse(toLead(data));
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return errorResponse('Cliente não encontrado após registrar contato.', 404);
+      return jsonResponse(toLead(row));
     }
 
     const activityMatch = path.match(/^\/api\/leads\/([^/]+)\/activity$/);
