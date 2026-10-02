@@ -8,7 +8,7 @@ CRM interno da TRUINEXA DIGITAL para prospecção, captura de oportunidades, car
 - Banco/Auth/Realtime: Supabase
 - Hospedagem: GitHub Pages via GitHub Actions
 - Distribuição de leads: modo **capture** — oportunidades entram sem responsável e precisam ser assumidas antes do contato
-- Prospecção: somente dados comerciais públicos validados; telefone fixo ou celular é obrigatório, WhatsApp é opcional quando confirmado
+- Prospecção: somente dados comerciais públicos validados; a plataforma aceita apenas celular brasileiro com WhatsApp confirmado
 
 ## Rodar localmente
 
@@ -36,8 +36,10 @@ O GitHub Actions executa essas verificações automaticamente no branch `main`.
 - usuários não autenticados não possuem acesso às tabelas
 - membros comerciais veem oportunidades disponíveis e a própria carteira
 - administrador possui visão gerencial
-- telefone de lead automático precisa ter fonte pública e validação registrada
+- celular/WhatsApp de lead automático precisa ter fonte pública e validação registrada
 - números normalizados duplicados são bloqueados no próprio banco
-- WhatsApp só é preenchido quando houver confirmação pública específica
+- o claim de lead é atômico no banco: só o primeiro usuário consegue assumir
+- o fluxo de prospecção usa mensagem personalizada editável antes de abrir o WhatsApp
+- portfólio e apresentação comercial são configuráveis no Supabase, sem alteração de código
 
 O projeto `studioblack7` não faz parte deste CRM e não deve ser alterado por integrações da TRUINEXA.
