@@ -59,7 +59,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
   const [neighborhood, setNeighborhood] = useState('');
   const [state, setState] = useState('SP');
   const [phone, setPhone] = useState('');
-  const [whatsapp, setWhatsapp] = useState('');
+  const [contactError, setContactError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [instagram, setInstagram] = useState('');
   const [website, setWebsite] = useState('Não possui');
@@ -90,8 +90,22 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
     }
   };
 
+  const normalizeWhatsAppMobile = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    const withCountry = digits.length === 11 ? `55${digits}` : digits;
+    return /^55\d{2}9\d{8}$/.test(withCountry) ? withCountry : '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setContactError(null);
+
+    const normalizedMobile = normalizeWhatsAppMobile(phone);
+    if (!normalizedMobile) {
+      setContactError('Informe somente celular com DDD e WhatsApp, por exemplo: (11) 99999-9999.');
+      return;
+    }
+
     setSubmitting(true);
     const selectedSrv = services.find((s) => s.name === serviceInterest);
     const category: ServiceCategory = selectedSrv?.category || 'Desenvolvimento Digital';
@@ -106,7 +120,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
         neighborhood,
         state,
         phone,
-        whatsapp: whatsapp || phone,
+        whatsapp: normalizedMobile,
+        contactType: 'whatsapp',
+        contactValidationMethod: 'Cadastro manual: número informado como celular com WhatsApp',
         email,
         instagram,
         website,
@@ -234,31 +250,31 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
           </div>
 
           {/* Contatos e Redes */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                Telefone / Celular *
+                Celular com WhatsApp *
               </label>
               <input
-                type="text"
+                type="tel"
+                inputMode="tel"
                 required
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setContactError(null);
+                }}
                 placeholder="(11) 99999-9999"
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
+                className={`w-full px-3.5 py-2 rounded-xl bg-slate-950 border text-sm text-white focus:outline-none ${
+                  contactError ? 'border-rose-500' : 'border-slate-800 focus:border-indigo-500'
+                }`}
               />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                WhatsApp (com DDD)
-              </label>
-              <input
-                type="text"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                placeholder="5511999999999"
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
-              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Apenas celular brasileiro com WhatsApp. Telefone fixo não é aceito.
+              </p>
+              {contactError && (
+                <p className="mt-1 text-[11px] font-medium text-rose-400">{contactError}</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">E-mail</label>
