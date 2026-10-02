@@ -446,7 +446,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   </span>
                   {lead.contactType && (
                     <span className="block mt-0.5 text-[11px] text-slate-500">
-                      Tipo: {lead.contactType === 'fixo' ? 'telefone fixo' : lead.contactType === 'celular' ? 'celular' : lead.contactType === 'whatsapp' ? 'celular / WhatsApp' : 'não identificado'}
+                      Tipo: {lead.contactType === 'whatsapp' ? 'celular / WhatsApp' : 'celular'}
                     </span>
                   )}
                 </div>
@@ -587,8 +587,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   { label: 'Empresa', key: 'company', icon: Briefcase },
                   { label: 'Segmento', key: 'segment', icon: Briefcase },
                   { label: 'Profissão', key: 'profession', icon: UserCheck },
-                  { label: 'Telefone', key: 'phone', icon: Phone },
-                  { label: 'WhatsApp', key: 'whatsapp', icon: MessageSquare },
+                  { label: 'Celular / WhatsApp', key: 'phone', icon: MessageSquare },
                   { label: 'E-mail', key: 'email', icon: Mail },
                   { label: 'Instagram', key: 'instagram', icon: Instagram },
                   { label: 'Site Atual', key: 'website', icon: Globe },
