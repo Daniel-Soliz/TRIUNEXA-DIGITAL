@@ -1225,7 +1225,14 @@ export default function App() {
 
                     <div className="mt-3 rounded-xl bg-slate-50 p-3">
                       <div className="text-[11px] text-slate-500">Solução sugerida</div>
-                      <div className="mt-0.5 text-sm font-semibold text-indigo-700">{lead.serviceInterest}</div>
+                      <div className="mt-0.5 text-sm font-semibold text-indigo-700">
+                        {lead.recommendedService || lead.serviceInterest}
+                      </div>
+                      {lead.opportunitySummary && (
+                        <div className="mt-1 text-[11px] leading-4 text-slate-500">
+                          {lead.opportunitySummary}
+                        </div>
+                      )}
                       {lead.estimatedValue > 0 && (
                         <div className="mt-1 text-xs font-mono font-bold text-emerald-600">
                           R$ {lead.estimatedValue.toLocaleString('pt-BR')}
@@ -1281,7 +1288,7 @@ export default function App() {
                     <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 font-mono uppercase">
                       <th className="py-3.5 px-4">Empresa / Cliente</th>
                       <th className="py-3.5 px-4">Localização & Segmento</th>
-                      <th className="py-3.5 px-4">Serviço de Interesse</th>
+                      <th className="py-3.5 px-4">Solução sugerida</th>
                       <th className="py-3.5 px-4">Etapa Kanban</th>
                       <th className="py-3.5 px-4">Responsável</th>
                       <th className="py-3.5 px-4 text-right">Contato Rápido</th>
@@ -1327,8 +1334,13 @@ export default function App() {
                           </td>
                           <td className="py-3.5 px-4">
                             <div className="font-medium text-indigo-300">
-                              {lead.serviceInterest}
+                              {lead.recommendedService || lead.serviceInterest}
                             </div>
+                            {lead.opportunitySummary && (
+                              <div className="mt-1 max-w-[260px] text-[11px] leading-4 text-slate-400">
+                                {lead.opportunitySummary}
+                              </div>
+                            )}
                             <div className="font-mono text-emerald-400 font-bold">
                               R$ {lead.estimatedValue.toLocaleString('pt-BR')}
                             </div>
