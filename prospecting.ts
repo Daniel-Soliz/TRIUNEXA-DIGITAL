@@ -190,121 +190,78 @@ export function generateProspectingMessage(
     normalizeText(lead.segment).includes('barber');
 
   if (isBarbershop) {
-    const barberOpenings = [
-      `Olá, tudo bem? Meu nome é ${sender}, da ${brand}.`,
-      `Olá! Tudo bem? Aqui é ${sender}, da ${brand}.`,
-      `Oi, tudo bem? Sou ${sender}, da ${brand}.`,
+    const openings = [
+      `Olá, tudo bem? Sou ${sender}, da ${brand}. Encontrei a ${lead.company}${location ? ` em ${location}` : ''}.`,
+      `Oi, tudo bem? Aqui é ${sender}, da ${brand}. Conheci a ${lead.company}${location ? ` pesquisando barbearias em ${location}` : ''}.`,
+      `Olá! Sou ${sender}, da ${brand}. Vi a ${lead.company}${location ? ` aqui na região de ${location}` : ''} e tive uma ideia para vocês.`,
     ];
 
-    const barberDiscovery = [
-      `Encontrei a ${lead.company} pesquisando barbearias${location ? ` na região de ${location}` : ''} e vi uma oportunidade que pode simplificar bastante o atendimento de vocês.`,
-      `Estava pesquisando barbearias${location ? ` em ${location}` : ''} e encontrei a ${lead.company}. Pensei em uma estrutura que pode concentrar o atendimento digital em um lugar só.`,
-      `A ${lead.company} apareceu em uma pesquisa de barbearias${location ? ` da região de ${location}` : ''}. Vi uma possibilidade de deixar o processo de agendamento e venda mais organizado para vocês.`,
+    const pitches = [
+      'Eu desenvolvo um site próprio para barbearia com agendamento, portfólio dos cortes, serviços, WhatsApp e até loja de produtos. Se vocês usam bot pago principalmente para agenda, em muitos casos dá para reduzir essa mensalidade levando esse fluxo para o próprio site.',
+      'Faço uma estrutura própria para barbearia com agenda, serviços, portfólio, WhatsApp e venda de produtos. Para quem paga bot mensal só para organizar horários, o site pode assumir boa parte desse processo.',
+      'Trabalho com site completo para barbearia: agendamento, serviços, portfólio, WhatsApp, produtos e painel de administração. Isso pode diminuir a dependência de ferramentas mensais usadas só para agenda e atendimento inicial.',
     ];
 
-    const botParagraphs = [
-      'Muitas barbearias acabam pagando mensalmente por bot ou automação no WhatsApp só para organizar horários. Dependendo de como esse bot funciona hoje, dá para levar boa parte desse processo para um site próprio da barbearia e reduzir ou até eliminar essa mensalidade específica.',
-      'Vejo muitas barbearias usando bot pago no WhatsApp para agendamento. Em vários casos, o próprio site consegue assumir esse papel: o cliente escolhe o serviço, vê os horários disponíveis e inicia o agendamento sem depender de uma assinatura mensal desse tipo de ferramenta.',
-      'Se vocês usam algum bot mensal apenas para organizar agendamento e atendimento inicial, existe a possibilidade de substituir boa parte desse fluxo por uma estrutura própria no site, deixando o investimento concentrado no desenvolvimento do sistema.',
-    ];
-
-    const featureParagraphs = [
-      'A estrutura pode ter serviços e preços, agenda, portfólio dos cortes, horários e localização, botão direto para WhatsApp, loja de produtos da barbearia, carrinho/pedidos e um painel administrativo para controlar tudo.',
-      'Dá para reunir em um único site o catálogo de serviços, agendamento, trabalhos realizados, localização, horários, WhatsApp e também uma loja para vender pomadas, óleos, máquinas e outros produtos, com painel administrativo para vocês atualizarem.',
-      'Além do agendamento, o site pode funcionar como vitrine da barbearia e loja: mostrar cortes, serviços, preços, equipe, horários, localização, produtos à venda e pedidos, tudo gerenciado por um painel próprio.',
-    ];
-
-    const barberCtas = [
-      `Inclusive, já desenvolvo esse modelo de estrutura para barbearia. Posso te mostrar uma ideia específica para a ${lead.company}?`,
-      `Se fizer sentido, posso te mostrar rapidamente como esse modelo ficaria aplicado à ${lead.company}.`,
-      `Posso te mostrar em dois minutos como eu montaria isso para a ${lead.company}?`,
+    const ctas = [
+      `Posso te mostrar um exemplo de como isso ficaria para a ${lead.company}?`,
+      `Quer que eu te mostre uma ideia rápida aplicada à ${lead.company}?`,
+      'Posso te mandar um exemplo para você ver em menos de 2 minutos?',
     ];
 
     const parts = [
-      choose(barberOpenings, seed),
+      choose(openings, seed),
       '',
-      choose(barberDiscovery, seed, 1),
-      '',
-      choose(botParagraphs, seed, 2),
-      '',
-      choose(featureParagraphs, seed, 3),
+      choose(pitches, seed, 1),
     ];
 
     if (options.includeRecommendedService && recommendedService) {
-      parts.push('', `A solução que pensei para vocês é: ${recommendedService}.`);
+      parts.push('', `A ideia seria: ${recommendedService}.`);
     }
 
     if (options.includePortfolio && settings.portfolioUrl) {
-      parts.push('', 'Meu portfólio:', settings.portfolioUrl);
+      parts.push('', `Portfólio: ${settings.portfolioUrl}`);
     }
 
     if (options.includePresentation && settings.presentationUrl) {
-      parts.push('', 'Apresentação rápida:', settings.presentationUrl);
+      parts.push('', `Apresentação: ${settings.presentationUrl}`);
     }
 
-    parts.push(
-      '',
-      'O desenvolvimento do site é um projeto fechado; custos externos opcionais, como domínio, hospedagem ou serviços de terceiros, são separados quando necessários.',
-      '',
-      choose(barberCtas, seed, 4)
-    );
-
+    parts.push('', choose(ctas, seed, 2));
     return parts.join('\n').trim();
   }
 
   const openings = [
-    `Olá, tudo bem? Meu nome é ${sender}, da ${brand}.`,
-    `Olá! Tudo bem? Aqui é ${sender}, da ${brand}.`,
-    `Oi, tudo bem? Sou ${sender}, da ${brand}.`,
-    `Olá, tudo certo? Meu nome é ${sender} e falo pela ${brand}.`,
+    `Olá, tudo bem? Sou ${sender}, da ${brand}. Encontrei a ${lead.company}${location ? ` em ${location}` : ''}.`,
+    `Oi, tudo bem? Aqui é ${sender}, da ${brand}. Conheci a ${lead.company}${location ? ` pesquisando empresas em ${location}` : ''}.`,
+    `Olá! Sou ${sender}, da ${brand}. Vi a ${lead.company}${location ? ` na região de ${location}` : ''} e identifiquei uma oportunidade.`,
   ];
 
-  const discoveries = [
-    `Encontrei a ${lead.company} pesquisando negócios de ${lead.segment}${location ? ` na região de ${location}` : ''} e vi uma oportunidade interessante para vocês.`,
-    `Conheci a ${lead.company} durante uma pesquisa de ${lead.segment}${location ? ` em ${location}` : ''} e identifiquei um ponto que pode deixar o contato com novos clientes mais simples.`,
-    `Estava pesquisando empresas de ${lead.segment}${location ? ` na região de ${location}` : ''} e encontrei a ${lead.company}. Vi uma possibilidade de melhorar a experiência de quem chega até vocês pelo celular.`,
-    `A ${lead.company} apareceu em uma pesquisa que fiz sobre ${lead.segment}${location ? ` em ${location}` : ''}. Analisei a presença digital de vocês e pensei em uma melhoria bem específica.`,
-  ];
-
-  const opportunityLines = [
-    `${opportunity} A ideia é ${benefit}.`,
-    `O ponto que identifiquei foi: ${opportunity} Isso pode ${benefit}.`,
-    `Pelo perfil do negócio, faz sentido trabalhar uma estrutura para ${opportunity.charAt(0).toLowerCase() + opportunity.slice(1)} Na prática, isso pode ${benefit}.`,
-  ];
-
-  const serviceLines = [
-    `Para isso, pensei principalmente em ${recommendedService}.`,
-    `A solução que eu consideraria para vocês é ${recommendedService}.`,
-    `Uma solução coerente para esse cenário seria ${recommendedService}.`,
+  const pitches = [
+    `Vi uma oportunidade para ${opportunity.charAt(0).toLowerCase() + opportunity.slice(1)} Eu consigo montar ${recommendedService} para ${benefit}.`,
+    `Acho que dá para melhorar um ponto simples: ${opportunity.charAt(0).toLowerCase() + opportunity.slice(1)} Minha sugestão seria ${recommendedService}.`,
+    `Pelo perfil do negócio, pensei em ${recommendedService} para ${benefit}.`,
   ];
 
   const ctas = [
-    'Posso te mostrar rapidamente a ideia que pensei para vocês?',
-    'Se fizer sentido, posso te mostrar uma ideia rápida que pensei para o negócio de vocês.',
-    'Posso te explicar em dois minutos como isso poderia funcionar para vocês?',
-    'Quer que eu te mostre a ideia que imaginei para a empresa?',
+    `Posso te mostrar uma ideia rápida para a ${lead.company}?`,
+    'Posso te mandar um exemplo para você avaliar?',
+    'Quer que eu te mostre como isso poderia funcionar no seu negócio?',
   ];
 
   const parts = [
     choose(openings, seed),
     '',
-    choose(discoveries, seed, 1),
-    '',
-    choose(opportunityLines, seed, 2),
+    choose(pitches, seed, 1),
   ];
 
-  if (options.includeRecommendedService && recommendedService) {
-    parts.push('', choose(serviceLines, seed, 3));
-  }
-
   if (options.includePortfolio && settings.portfolioUrl) {
-    parts.push('', 'Meu portfólio:', settings.portfolioUrl);
+    parts.push('', `Portfólio: ${settings.portfolioUrl}`);
   }
 
   if (options.includePresentation && settings.presentationUrl) {
-    parts.push('', 'Apresentação rápida:', settings.presentationUrl);
+    parts.push('', `Apresentação: ${settings.presentationUrl}`);
   }
 
-  parts.push('', choose(ctas, seed, 4));
+  parts.push('', choose(ctas, seed, 2));
   return parts.join('\n').trim();
 }
