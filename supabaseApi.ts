@@ -48,9 +48,7 @@ function getAppUrl() {
 }
 
 function getRecoveryRedirectUrl() {
-  const url = new URL(getAppUrl());
-  url.searchParams.set('recovery', '1');
-  return url.toString();
+  return getAppUrl();
 }
 
 const defaultPermissions = {
