@@ -1358,15 +1358,27 @@ export const ReportsModule: React.FC<{
 export const TeamAndSettingsModule: React.FC<{
   state: CRMState;
   currentUser: User;
-  onUpdateUser: (
-    userId: string,
-    updates: Partial<User>,
-    resetTempPassword?: string
-  ) => Promise<void>;
+  onUpdateUser: (userId: string, updates: Partial<User>) => Promise<void>;
+  onSendRecoveryEmail: (userId: string) => Promise<void>;
   onUpdateConfig: (updates: Partial<CRMState['config']>) => Promise<void>;
-}> = ({ state, currentUser, onUpdateUser, onUpdateConfig }) => {
-  const [tempPassPrompts, setTempPassPrompts] = useState<Record<string, string>>({});
+}> = ({ state, currentUser, onUpdateUser, onSendRecoveryEmail, onUpdateConfig }) => {
+  const [recoverySending, setRecoverySending] = useState<string | null>(null);
+  const [recoverySent, setRecoverySent] = useState<string | null>(null);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
   const isAdmin = currentUser.role === 'admin';
+
+  const loginLogs = state.activityLogs.filter((log) => log.action === 'LOGIN');
+  const dayKey = (value: string | Date) =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(value));
+  const todayKey = dayKey(new Date());
+  const todayLogins = loginLogs.filter((log) => dayKey(log.createdAt) === todayKey).length;
+  const usersWithAccess = new Set(loginLogs.map((log) => log.userId)).size;
+  const lastLogin = loginLogs[0];
 
   if (!isAdmin && !currentUser.permissions.canManageUsers) {
     return (
@@ -1522,6 +1534,69 @@ export const TeamAndSettingsModule: React.FC<{
         </div>
       </div>
 
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+        <div>
+          <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold block">
+            Acessos da plataforma
+          </span>
+          <h3 className="text-base font-display font-bold text-white">
+            Histórico de logins autenticados
+          </h3>
+          <p className="mt-1 text-xs text-slate-400">
+            Conta acessos concluídos com autenticação no Supabase. Não representa simples abertura da página.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <span className="text-[11px] uppercase tracking-wider text-slate-500">Total de acessos</span>
+            <div className="mt-1 text-2xl font-display font-bold text-white">{loginLogs.length}</div>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <span className="text-[11px] uppercase tracking-wider text-slate-500">Acessos hoje</span>
+            <div className="mt-1 text-2xl font-display font-bold text-white">{todayLogins}</div>
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+            <span className="text-[11px] uppercase tracking-wider text-slate-500">Usuários que já entraram</span>
+            <div className="mt-1 text-2xl font-display font-bold text-white">{usersWithAccess}</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {state.users.map((member) => {
+            const memberLogins = loginLogs.filter((log) => log.userId === member.id);
+            const latest = memberLogins[0];
+            return (
+              <div
+                key={member.id}
+                className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 flex items-center justify-between gap-3"
+              >
+                <div>
+                  <div className="text-sm font-semibold text-white">{member.name}</div>
+                  <div className="text-[11px] text-slate-500">
+                    {latest
+                      ? `Último acesso: ${new Date(latest.createdAt).toLocaleString('pt-BR', {
+                          timeZone: 'America/Sao_Paulo',
+                        })}`
+                      : 'Ainda sem acesso registrado'}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold text-indigo-300">{memberLogins.length}</div>
+                  <div className="text-[10px] uppercase text-slate-500">logins</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {lastLogin && (
+          <p className="text-[11px] text-slate-500">
+            Último login registrado por <strong className="text-slate-300">{lastLogin.userName}</strong>.
+          </p>
+        )}
+      </div>
+
       {/* Team Members & Granular Permissions (Section 2 & 31) */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
         <h3 className="text-base font-display font-bold text-white">
@@ -1617,40 +1692,45 @@ export const TeamAndSettingsModule: React.FC<{
                 })}
               </div>
 
-              {/* Temporary Password Reset for First-Access Flow */}
               <div className="pt-3 border-t border-slate-800 space-y-2">
                 <span className="text-[11px] font-mono text-slate-400 block">
-                  Redefinir Acesso (Gerar Senha Temporária de 1º Acesso)
+                  Redefinição segura de senha
                 </span>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={tempPassPrompts[u.id] || ''}
-                    onChange={(e) =>
-                      setTempPassPrompts({ ...tempPassPrompts, [u.id]: e.target.value })
+                <p className="text-[11px] text-slate-500">
+                  A senha atual não é exibida. O usuário recebe um link protegido no e-mail cadastrado e cria uma nova senha.
+                </p>
+                <button
+                  type="button"
+                  disabled={recoverySending === u.id}
+                  onClick={async () => {
+                    setRecoverySending(u.id);
+                    setRecoverySent(null);
+                    setRecoveryError(null);
+                    try {
+                      await onSendRecoveryEmail(u.id);
+                      setRecoverySent(u.id);
+                    } catch (error) {
+                      setRecoveryError(
+                        error instanceof Error ? error.message : 'Não foi possível enviar o e-mail.'
+                      );
+                    } finally {
+                      setRecoverySending(null);
                     }
-                    placeholder="Nova senha temporária..."
-                    className="flex-1 px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const val =
-                        tempPassPrompts[u.id]?.trim() || `Temp@${u.name}2026`;
-                      await onUpdateUser(u.id, {}, val);
-                      setTempPassPrompts({ ...tempPassPrompts, [u.id]: '' });
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                  >
-                    <KeyRound className="w-3.5 h-3.5" />
-                    <span>Exigir Troca</span>
-                  </button>
-                </div>
-                {u.mustChangePassword && (
-                  <p className="text-[11px] text-amber-400 font-mono">
-                    ✓ Aguardando criação de senha pessoal no próximo login (Senha temp:{' '}
-                    {u.tempPasswordHint})
+                  }}
+                  className="w-full px-3 py-2 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span>
+                    {recoverySending === u.id ? 'Enviando...' : 'Enviar redefinição por e-mail'}
+                  </span>
+                </button>
+                {recoverySent === u.id && (
+                  <p className="text-[11px] text-emerald-400">
+                    Link de redefinição enviado para o e-mail cadastrado.
                   </p>
+                )}
+                {recoveryError && recoverySending !== u.id && (
+                  <p className="text-[11px] text-rose-400">{recoveryError}</p>
                 )}
               </div>
             </div>
