@@ -33,6 +33,26 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 });
 
+const PRODUCTION_APP_URL = 'https://daniel-soliz.github.io/TRIUNEXA-DIGITAL/';
+
+function getAppUrl() {
+  const configured = String(import.meta.env.VITE_APP_URL || '').trim();
+  if (configured) return configured.endsWith('/') ? configured : `${configured}/`;
+
+  if (window.location.hostname.endsWith('github.io')) {
+    return PRODUCTION_APP_URL;
+  }
+
+  const current = `${window.location.origin}${window.location.pathname}`;
+  return current.endsWith('/') ? current : `${current}/`;
+}
+
+function getRecoveryRedirectUrl() {
+  const url = new URL(getAppUrl());
+  url.searchParams.set('recovery', '1');
+  return url.toString();
+}
+
 const defaultPermissions = {
   canViewAllLeads: false,
   canEditAnyLead: false,
@@ -516,7 +536,10 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name: name || email.split('@')[0] } },
+        options: {
+          data: { name: name || email.split('@')[0] },
+          emailRedirectTo: getAppUrl(),
+        },
       });
       if (error) return errorResponse(error.message, 400);
 
@@ -548,7 +571,29 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         return errorResponse('Cadastro recebido. Aguarde a aprovação do administrador para acessar o CRM.', 403);
       }
 
-      return jsonResponse({ user: profile, sessionToken: data.session.access_token });
+      const loginAt = new Date().toISOString();
+      const deviceInfo = String(body.deviceInfo || 'Navegador');
+
+      await supabase
+        .from('truinexa_profiles')
+        .update({ last_login_at: loginAt, active_device: deviceInfo })
+        .eq('id', profile.id);
+
+      await insertLog(
+        profile,
+        null,
+        'LOGIN',
+        'Acesso autenticado na plataforma',
+        undefined,
+        undefined,
+        { deviceInfo }
+      );
+
+      const refreshedProfile = await currentProfile();
+      return jsonResponse({
+        user: refreshedProfile || profile,
+        sessionToken: data.session.access_token,
+      });
     }
 
     if (path === '/api/auth/logout' && method === 'POST') {
@@ -559,7 +604,7 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
     if (path === '/api/auth/recover-password' && method === 'POST') {
       const email = String(body.identifier || '').trim().toLowerCase();
       if (!email.includes('@')) return errorResponse('Informe o e-mail da sua conta.', 400);
-      const redirectTo = window.location.origin + window.location.pathname;
+      const redirectTo = getRecoveryRedirectUrl();
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
       if (error) return errorResponse(error.message, 400);
       return jsonResponse({ message: 'Enviamos um link de recuperação para o seu e-mail.' });
@@ -894,6 +939,42 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         .update(patch).eq('id', projectMatch[1]).select('*').single();
       if (error) return errorResponse(error.message, 400);
       return jsonResponse(toProject(data));
+    }
+
+    const recoveryEmailMatch = path.match(/^\/api\/users\/([^/]+)\/recovery-email$/);
+    if (recoveryEmailMatch && method === 'POST') {
+      if (profile.role !== 'admin' && !profile.permissions.canManageUsers) {
+        return errorResponse('Apenas o administrador pode redefinir acessos da equipe.', 403);
+      }
+
+      const { data: target, error: targetError } = await supabase
+        .from('truinexa_profiles')
+        .select('id,name,email')
+        .eq('id', recoveryEmailMatch[1])
+        .maybeSingle();
+
+      if (targetError || !target?.email) {
+        return errorResponse('Usuário não encontrado para recuperação.', 404);
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(target.email, {
+        redirectTo: getRecoveryRedirectUrl(),
+      });
+      if (error) return errorResponse(error.message, 400);
+
+      await insertLog(
+        profile,
+        null,
+        'PASSWORD_RECOVERY_SENT',
+        `Link de redefinição enviado por e-mail para ${target.name}.`,
+        undefined,
+        undefined,
+        { targetUserId: target.id }
+      );
+
+      return jsonResponse({
+        message: `Link de redefinição enviado para o e-mail cadastrado de ${target.name}.`,
+      });
     }
 
     const userMatch = path.match(/^\/api\/users\/([^/]+)$/);
