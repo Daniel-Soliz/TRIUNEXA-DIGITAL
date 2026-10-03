@@ -39,6 +39,17 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const searchParams = new URLSearchParams(window.location.search);
+    const recoveryFromUrl =
+      searchParams.get('recovery') === '1' || hashParams.get('type') === 'recovery';
+
+    if (recoveryFromUrl) {
+      setMode('reset');
+      setError(null);
+      setMessage('Defina uma nova senha para concluir a recuperação.');
+    }
+
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setMode('reset');
@@ -46,6 +57,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setMessage('Defina uma nova senha para concluir a recuperação.');
       }
     });
+
     return () => data.subscription.unsubscribe();
   }, []);
 
@@ -170,6 +182,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
       setPassword('');
       setConfirmPassword('');
       await supabase.auth.signOut();
+      window.history.replaceState(
+        {},
+        document.title,
+        `${window.location.origin}${window.location.pathname}`
+      );
     } catch {
       setError('Não foi possível alterar a senha.');
     } finally {
