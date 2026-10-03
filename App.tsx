@@ -602,17 +602,30 @@ export default function App() {
     });
   };
 
-  const handleUpdateUser = async (
-    userId: string,
-    updates: Partial<User>,
-    resetTempPassword?: string
-  ) => {
+  const handleUpdateUser = async (userId: string, updates: Partial<User>) => {
     if (!currentUser) return;
-    await crmFetch(`/api/users/${userId}`, {
+    const response = await crmFetch(`/api/users/${userId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actorId: currentUser.id, updates, resetTempPassword }),
+      body: JSON.stringify({ actorId: currentUser.id, updates }),
     });
+    if (!response.ok) {
+      const data = await response.json();
+      throw new Error(data.error || 'Não foi possível atualizar o usuário.');
+    }
+  };
+
+  const handleSendRecoveryEmail = async (userId: string) => {
+    if (!currentUser) return;
+    const response = await crmFetch(`/api/users/${userId}/recovery-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actorId: currentUser.id }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Não foi possível enviar a redefinição por e-mail.');
+    }
   };
 
   const handleUpdateConfig = async (configUpdates: Partial<CRMState['config']>) => {
@@ -1913,6 +1926,7 @@ export default function App() {
               state={crmState}
               currentUser={currentUser}
               onUpdateUser={handleUpdateUser}
+              onSendRecoveryEmail={handleSendRecoveryEmail}
               onUpdateConfig={handleUpdateConfig}
             />
           )}
