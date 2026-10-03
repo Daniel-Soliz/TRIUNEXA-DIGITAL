@@ -541,12 +541,42 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       });
       if (error) return errorResponse(error.message, 400);
 
+      if (data.session) {
+        const profile = await currentProfile();
+        if (!profile) {
+          await supabase.auth.signOut();
+          return errorResponse('Conta criada, mas não foi possível carregar o perfil de acesso.', 500);
+        }
+
+        const loginAt = new Date().toISOString();
+        await supabase
+          .from('truinexa_profiles')
+          .update({ last_login_at: loginAt, active_device: 'Cadastro / Navegador' })
+          .eq('id', profile.id);
+
+        await insertLog(
+          profile,
+          null,
+          'LOGIN',
+          'Primeiro acesso automático após cadastro',
+          undefined,
+          undefined,
+          { source: 'signup' }
+        );
+
+        const refreshedProfile = await currentProfile();
+        return jsonResponse({
+          message: 'Conta criada e acesso liberado.',
+          requiresEmailConfirmation: false,
+          user: refreshedProfile || profile,
+          sessionToken: data.session.access_token,
+        });
+      }
+
       return jsonResponse({
-        message: data.session
-          ? 'Conta criada e conectada.'
-          : 'Conta criada. Confira seu e-mail para confirmar o acesso.',
-        requiresEmailConfirmation: !data.session,
-      }, data.session ? 200 : 202);
+        message: 'Conta criada e acesso liberado. Confirme seu e-mail para concluir o primeiro acesso.',
+        requiresEmailConfirmation: true,
+      }, 202);
     }
 
     if (path === '/api/auth/login' && method === 'POST') {
@@ -566,7 +596,7 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       }
       if (profile.status !== 'active') {
         await supabase.auth.signOut();
-        return errorResponse('Cadastro recebido. Aguarde a aprovação do administrador para acessar o CRM.', 403);
+        return errorResponse('Este acesso está desativado. Fale com o administrador da TRUINEXA.', 403);
       }
 
       const loginAt = new Date().toISOString();
