@@ -118,7 +118,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setError(data.error || 'Não foi possível criar a conta.');
         return;
       }
-      setMessage(data.message || 'Cadastro realizado.');
+      if (data.user && data.sessionToken) {
+        onLoginSuccess(data.user, data.sessionToken);
+        return;
+      }
+
+      setMessage(data.message || 'Cadastro realizado. Seu acesso já está liberado.');
       setMode('login');
       setPassword('');
       setConfirmPassword('');
@@ -205,7 +210,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
   const subtitle =
     mode === 'signup'
-      ? 'O administrador entra ativo. Novos membros ficam aguardando aprovação.'
+      ? 'Crie sua conta. O acesso é liberado automaticamente, sem aprovação do administrador.'
       : mode === 'recovery'
         ? 'Enviaremos um link seguro para o seu e-mail.'
         : mode === 'reset'
