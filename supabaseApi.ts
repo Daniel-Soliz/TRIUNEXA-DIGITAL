@@ -640,8 +640,7 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         if (status === 429 || authMessage.includes('rate limit')) {
           return jsonResponse(
             {
-              error: 'Muitas solicitações de recuperação foram feitas em pouco tempo. Aguarde 60 segundos antes de tentar novamente. Se continuar, o limite de e-mails do Supabase ainda está temporariamente esgotado.',
-              retryAfterSeconds: 60,
+              error: 'O provedor de e-mail recusou este envio por limite externo. A TRUINEXA não está bloqueando novas tentativas.',
             },
             429
           );
@@ -650,7 +649,6 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       }
       return jsonResponse({
         message: 'Link enviado. Confira sua caixa de entrada e também a pasta de spam.',
-        retryAfterSeconds: 60,
       });
     }
 
@@ -1010,8 +1008,7 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         if (status === 429 || authMessage.includes('rate limit')) {
           return jsonResponse(
             {
-              error: 'O limite temporário de e-mails do Supabase foi atingido. Aguarde antes de enviar outro link de recuperação.',
-              retryAfterSeconds: 60,
+              error: 'O provedor de e-mail recusou este envio por limite externo. A TRUINEXA não está bloqueando novas tentativas.',
             },
             429
           );
