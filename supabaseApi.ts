@@ -634,8 +634,24 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       if (!email.includes('@')) return errorResponse('Informe o e-mail da sua conta.', 400);
       const redirectTo = getRecoveryRedirectUrl();
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
-      if (error) return errorResponse(error.message, 400);
-      return jsonResponse({ message: 'Enviamos um link de recuperação para o seu e-mail.' });
+      if (error) {
+        const authMessage = String(error.message || '').toLowerCase();
+        const status = Number((error as any).status || 0);
+        if (status === 429 || authMessage.includes('rate limit')) {
+          return jsonResponse(
+            {
+              error: 'Muitas solicitações de recuperação foram feitas em pouco tempo. Aguarde 60 segundos antes de tentar novamente. Se continuar, o limite de e-mails do Supabase ainda está temporariamente esgotado.',
+              retryAfterSeconds: 60,
+            },
+            429
+          );
+        }
+        return errorResponse('Não foi possível enviar o e-mail de recuperação agora. Tente novamente em alguns instantes.', 400);
+      }
+      return jsonResponse({
+        message: 'Link enviado. Confira sua caixa de entrada e também a pasta de spam.',
+        retryAfterSeconds: 60,
+      });
     }
 
     if (path === '/api/auth/change-password' && method === 'POST') {
@@ -988,7 +1004,20 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       const { error } = await supabase.auth.resetPasswordForEmail(target.email, {
         redirectTo: getRecoveryRedirectUrl(),
       });
-      if (error) return errorResponse(error.message, 400);
+      if (error) {
+        const authMessage = String(error.message || '').toLowerCase();
+        const status = Number((error as any).status || 0);
+        if (status === 429 || authMessage.includes('rate limit')) {
+          return jsonResponse(
+            {
+              error: 'O limite temporário de e-mails do Supabase foi atingido. Aguarde antes de enviar outro link de recuperação.',
+              retryAfterSeconds: 60,
+            },
+            429
+          );
+        }
+        return errorResponse('Não foi possível enviar o link de recuperação agora.', 400);
+      }
 
       await insertLog(
         profile,
