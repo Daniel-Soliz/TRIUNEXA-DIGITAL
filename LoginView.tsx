@@ -37,7 +37,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [recoveryCooldown, setRecoveryCooldown] = useState(0);
 
   useEffect(() => {
     const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -61,14 +60,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
     return () => data.subscription.unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (recoveryCooldown <= 0) return;
-    const timer = window.setTimeout(() => {
-      setRecoveryCooldown((value) => Math.max(0, value - 1));
-    }, 1000);
-    return () => window.clearTimeout(timer);
-  }, [recoveryCooldown]);
 
   const clearFeedback = () => {
     setError(null);
@@ -155,13 +146,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
       });
       const data = await response.json();
       if (!response.ok) {
-        if (response.status === 429) {
-          setRecoveryCooldown(Number(data.retryAfterSeconds || 60));
-        }
         setError(data.error || 'Não foi possível solicitar a recuperação.');
         return;
       }
-      setRecoveryCooldown(Number(data.retryAfterSeconds || 60));
       setMessage(data.message);
     } catch {
       setError('Não foi possível solicitar a recuperação.');
@@ -254,11 +241,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
             <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
             <p className="mt-2 text-sm leading-6 text-slate-500">{subtitle}</p>
-            {mode === 'recovery' && (
-              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-                Envie apenas uma vez e aguarde. Se o e-mail não aparecer, confira o spam. Novos envios ficam bloqueados por alguns instantes para evitar excesso de solicitações.
-              </div>
-            )}
 
             <div className="mt-4">
               <InstallAppButton className="px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-semibold inline-flex items-center gap-2 hover:bg-slate-100 transition cursor-pointer" />
@@ -379,7 +361,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
               <button
                 type="submit"
-                disabled={loading || (mode === 'recovery' && recoveryCooldown > 0)}
+                disabled={loading}
                 className="w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading
@@ -387,9 +369,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   : mode === 'signup'
                     ? 'Criar minha conta'
                     : mode === 'recovery'
-                      ? recoveryCooldown > 0
-                        ? `Tentar novamente em ${recoveryCooldown}s`
-                        : 'Enviar recuperação'
+                      ? 'Enviar recuperação'
                       : mode === 'reset'
                         ? 'Salvar nova senha'
                         : 'Entrar'}
