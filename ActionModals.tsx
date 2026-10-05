@@ -148,7 +148,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-3xl w-full overflow-hidden shadow-2xl my-8">
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
           <div>
@@ -167,7 +167,7 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-3 sm:p-6 space-y-5 max-h-[88dvh] overflow-y-auto overscroll-contain pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
@@ -522,7 +522,7 @@ export const CloseDealModal: React.FC<CloseDealModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4">
       <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl">
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-emerald-500/10">
           <div className="flex items-center gap-2.5">
@@ -743,7 +743,7 @@ export const LostLeadModal: React.FC<LostLeadModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4">
       <div className="bg-slate-900 border border-rose-500/30 rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl">
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-rose-500/10">
           <div className="flex items-center gap-2.5">
@@ -1056,7 +1056,7 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 backdrop-blur-sm p-3 sm:p-5 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 backdrop-blur-sm p-2 sm:p-5 overflow-y-auto overscroll-contain">
       <div className="bg-white border border-slate-200 rounded-3xl max-w-5xl w-full overflow-hidden shadow-2xl my-4 text-slate-900">
         <div className="px-5 sm:px-7 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="min-w-0">
@@ -1358,7 +1358,7 @@ export const QuickAppointmentModal: React.FC<QuickAppointmentModalProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-2 sm:p-4">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl">
         <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
           <div className="flex items-center gap-2.5">
