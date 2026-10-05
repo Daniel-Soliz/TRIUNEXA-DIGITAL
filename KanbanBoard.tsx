@@ -79,7 +79,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   };
 
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 min-h-[calc(100vh-205px)] select-none">
+    <div className="flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory pb-4 min-h-[calc(100dvh-220px)] select-none touch-pan-x">
       {KANBAN_STAGES.map((stage, index) => {
         const columnLeads = leads.filter((lead) => lead.stage === stage.id);
         const total = columnLeads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0);
@@ -92,7 +92,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             onDragOver={(event) => handleDragOver(event, stage.id)}
             onDragLeave={() => setDragOverStage(null)}
             onDrop={(event) => void handleDrop(event, stage.id)}
-            className={`w-[276px] sm:w-[292px] shrink-0 rounded-xl border bg-[#f8fafc] transition ${
+            className={`w-[86vw] max-w-[320px] sm:w-[292px] shrink-0 snap-start rounded-xl border bg-[#f8fafc] transition ${
               isOver ? 'border-indigo-400 ring-2 ring-indigo-100 bg-indigo-50/30' : 'border-slate-200'
             }`}
           >
@@ -111,7 +111,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               </div>
             </div>
 
-            <div className="p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-285px)]">
+            <div className="p-2 space-y-2 overflow-y-auto max-h-[calc(100dvh-310px)] overscroll-contain">
               {columnLeads.length === 0 ? (
                 <div className="h-24 rounded-lg border border-dashed border-slate-200 bg-white/60 flex items-center justify-center px-4 text-center text-[11px] text-slate-400">
                   Arraste uma oportunidade para esta etapa
