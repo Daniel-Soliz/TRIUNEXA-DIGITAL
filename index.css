@@ -72,3 +72,23 @@
     touch-action: manipulation;
   }
 }
+
+
+@keyframes truinexa-drawer-in {
+  from { transform: translateX(100%); opacity: 0.98; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (max-width: 1023px) {
+  .mobile-drawer-open {
+    animation: truinexa-drawer-in 180ms ease-out both;
+  }
+
+  .mobile-drawer nav {
+    overscroll-behavior: contain;
+  }
+
+  .mobile-bottom-nav {
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.06);
+  }
+}
