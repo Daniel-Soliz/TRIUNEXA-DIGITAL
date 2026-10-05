@@ -652,14 +652,6 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       if (error) {
         const authMessage = String(error.message || '').toLowerCase();
         const status = Number((error as any).status || 0);
-        if (status === 429 || authMessage.includes('rate limit')) {
-          return jsonResponse(
-            {
-              error: 'Não foi possível enviar outro e-mail agora. Tente novamente em instantes.',
-            },
-            429
-          );
-        }
         return errorResponse('Não foi possível enviar o e-mail de recuperação agora. Tente novamente em alguns instantes.', 400);
       }
       return jsonResponse({
@@ -1020,14 +1012,6 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       if (error) {
         const authMessage = String(error.message || '').toLowerCase();
         const status = Number((error as any).status || 0);
-        if (status === 429 || authMessage.includes('rate limit')) {
-          return jsonResponse(
-            {
-              error: 'Não foi possível enviar outro e-mail agora. Tente novamente em instantes.',
-            },
-            429
-          );
-        }
         return errorResponse('Não foi possível enviar o link de recuperação agora.', 400);
       }
 
