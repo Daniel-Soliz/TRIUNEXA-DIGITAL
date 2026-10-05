@@ -28,7 +28,7 @@ import {
   MapPin,
   Menu,
   X,
-  ChevronLeft,
+  ChevronRight,
   Wifi,
 } from 'lucide-react';
 import {
@@ -826,6 +826,9 @@ export default function App() {
     setMobileMenuOpen(false);
   };
 
+  const isLeadWorkspace =
+    activeTab === 'kanban' || activeTab === 'leads' || activeTab === 'carteira';
+
   const activeTitle: Record<NavTab, string> = {
     dashboard: 'Visão geral',
     leads: 'Oportunidades',
@@ -844,22 +847,24 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen flex bg-[#f5f7fb] text-slate-900"
+      className="min-h-[100dvh] flex bg-[#f5f7fb] text-slate-900"
     >
       {mobileMenuOpen && (
         <button
+          type="button"
           aria-label="Fechar menu"
-          onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-[35] bg-slate-950/45 backdrop-blur-[1px] lg:hidden"
+          onPointerDown={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-[35] bg-slate-950/40 backdrop-blur-[1px] lg:hidden"
         />
       )}
 
-      {/* Menu lateral: drawer compacto no celular e rail no desktop */}
+      {/* No celular o menu abre pela direita e some totalmente ao fechar. */}
       <aside
         aria-label="Menu principal"
-        className={`mobile-drawer fixed inset-y-0 left-0 z-40 w-[62vw] min-w-[205px] max-w-[230px] lg:w-[76px] lg:min-w-0 lg:max-w-none bg-[#111827] border-r border-white/10 flex flex-col shadow-2xl shadow-slate-950/40 transition-transform duration-300 ease-out lg:shadow-none lg:translate-x-0 lg:static ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        aria-hidden={!mobileMenuOpen}
+        className={`mobile-drawer fixed inset-y-0 right-0 left-auto z-40 w-[82vw] max-w-[320px] bg-[#111827] border-l border-white/10 flex-col shadow-2xl shadow-slate-950/40
+          ${mobileMenuOpen ? 'flex mobile-drawer-open' : 'hidden'}
+          lg:flex lg:static lg:inset-auto lg:w-[76px] lg:max-w-none lg:border-l-0 lg:border-r lg:shadow-none`}
       >
         <div className="h-16 flex items-center px-3 lg:px-0 lg:justify-center border-b border-white/10">
           <button
@@ -879,11 +884,11 @@ export default function App() {
           </button>
           <button
             type="button"
-            aria-label="Recolher menu"
-            onClick={() => setMobileMenuOpen(false)}
-            className="ml-auto lg:hidden grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/10 text-white shadow-sm transition active:scale-95"
+            aria-label="Fechar menu para a direita"
+            onPointerDown={() => setMobileMenuOpen(false)}
+            className="ml-auto lg:hidden grid h-10 w-10 place-items-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm active:scale-95"
           >
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
@@ -959,14 +964,6 @@ export default function App() {
           </div>
         </div>
 
-        <button
-          type="button"
-          aria-label="Recolher menu lateral"
-          onClick={() => setMobileMenuOpen(false)}
-          className="absolute -right-5 top-24 lg:hidden grid h-11 w-11 place-items-center rounded-full border-4 border-[#f5f7fb] bg-[#635bff] text-white shadow-lg active:scale-95"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
       </aside>
 
       {/* Main Content Area */}
@@ -1025,71 +1022,64 @@ export default function App() {
             </div>
           </div>
 
-          <div className="px-3 sm:px-5 border-t border-slate-100">
-            <div className="min-h-12 flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1 self-stretch">
-                {[
-                  { id: 'kanban' as NavTab, label: 'Quadro' },
-                  { id: 'leads' as NavTab, label: 'Lista' },
-                  { id: 'carteira' as NavTab, label: 'Carteira' },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => goToTab(tab.id)}
-                    className={`h-full px-3 text-xs font-semibold border-b-2 transition ${
-                      activeTab === tab.id
-                        ? 'border-[#635bff] text-[#635bff]'
-                        : 'border-transparent text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
+          {isLeadWorkspace && (
+            <div className="px-3 sm:px-5 border-t border-slate-100 bg-white">
+              <div className="py-2 flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {[
+                    { id: 'kanban' as NavTab, label: 'Funil' },
+                    { id: 'leads' as NavTab, label: 'Novos' },
+                    { id: 'carteira' as NavTab, label: 'Carteira' },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => goToTab(tab.id)}
+                      className={`h-9 px-3 rounded-lg text-xs font-semibold transition ${
+                        activeTab === tab.id
+                          ? 'bg-indigo-50 text-[#635bff]'
+                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative flex-1 min-w-0 sm:max-w-md">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar cliente, bairro ou WhatsApp..."
+                    className="w-full h-10 pl-9 pr-3 rounded-xl border border-slate-200 bg-slate-50 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:bg-white"
+                  />
+                </div>
+
+                <select
+                  value={responsibleFilter}
+                  onChange={(e) => setResponsibleFilter(e.target.value)}
+                  className="hidden md:block h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 focus:outline-none"
+                >
+                  <option value="all">Todos responsáveis</option>
+                  <option value="unassigned">Sem responsável</option>
+                  {crmState.users.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
               </div>
 
-              <div className="hidden sm:block h-6 w-px bg-slate-200 mx-1" />
-
-              <div className="relative flex-1 min-w-[210px] max-w-md">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (activeTab !== 'leads' && activeTab !== 'carteira' && activeTab !== 'kanban') {
-                      setActiveTab('kanban');
-                    }
-                  }}
-                  placeholder="Buscar empresa, serviço, bairro ou WhatsApp..."
-                  className="w-full h-8 pl-9 pr-3 rounded-lg border border-slate-200 bg-slate-50 text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-indigo-400 focus:bg-white"
-                />
-              </div>
-
-              <select
-                value={responsibleFilter}
-                onChange={(e) => setResponsibleFilter(e.target.value)}
-                className="hidden md:block h-8 px-2.5 rounded-lg border border-slate-200 bg-white text-[11px] font-medium text-slate-600 focus:outline-none"
-              >
-                <option value="all">Todos responsáveis</option>
-                <option value="unassigned">Sem responsável</option>
-                {crmState.users.map((u) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-              </select>
-            </div>
-
-            {(activeTab === 'kanban' || activeTab === 'leads' || activeTab === 'carteira') && (
-              <div className="pb-2 flex items-center gap-1.5 overflow-x-auto">
+              <div className="pb-2 flex items-center gap-1.5 overflow-x-auto overscroll-x-contain">
                 {QUICK_FILTERS.map((flt) => {
                   const active = quickFilter === flt;
                   return (
                     <button
                       key={flt}
                       onClick={() => setQuickFilter(flt)}
-                      className={`shrink-0 px-2.5 py-1 rounded-md border text-[10px] font-semibold transition ${
+                      className={`shrink-0 px-3 py-1.5 rounded-full border text-[11px] font-semibold transition ${
                         active
                           ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
-                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                          : 'bg-white border-slate-200 text-slate-500'
                       }`}
                     >
                       {flt}
@@ -1097,12 +1087,12 @@ export default function App() {
                   );
                 })}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </header>
 
         {/* Active View Body */}
-        <main className="flex-1 p-3 sm:p-4 pb-24 lg:pb-4 overflow-x-hidden bg-[#f5f7fb]">
+        <main className="flex-1 p-2.5 sm:p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] lg:pb-4 overflow-x-hidden bg-[#f5f7fb]">
           {/* =================================================================
               INÍCIO SIMPLES — foco no que a equipe precisa fazer agora
           ================================================================= */}
@@ -1991,7 +1981,7 @@ export default function App() {
         <div className="grid grid-cols-5 gap-1">
           {[
             { id: 'dashboard' as NavTab, label: 'Início', icon: LayoutDashboard },
-            { id: 'leads' as NavTab, label: 'Novos', icon: Users, badge: availableLeads.length },
+            { id: 'kanban' as NavTab, label: 'Funil', icon: Kanban, badge: visibleLeads.length },
             { id: 'carteira' as NavTab, label: 'Carteira', icon: Award, badge: myPortfolioCount },
             { id: 'agenda' as NavTab, label: 'Agenda', icon: Calendar },
           ].map((item) => {
