@@ -28,6 +28,7 @@ import {
   MapPin,
   Menu,
   X,
+  ChevronLeft,
   Wifi,
 } from 'lucide-react';
 import {
@@ -109,6 +110,24 @@ export default function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [realtimePulse, setRealtimePulse] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
+
+  // Mobile drawer: behave like a native app menu.
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false);
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [mobileMenuOpen]);
 
   // Global Search & Quick Filters (Section 12)
   const [searchQuery, setSearchQuery] = useState('');
@@ -831,17 +850,18 @@ export default function App() {
         <button
           aria-label="Fechar menu"
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-30 bg-slate-950/30 lg:hidden"
+          className="fixed inset-0 z-[35] bg-slate-950/45 backdrop-blur-[1px] lg:hidden"
         />
       )}
 
-      {/* Barra lateral estilo CRM compacto */}
+      {/* Menu lateral: drawer compacto no celular e rail no desktop */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-[232px] lg:w-[76px] bg-[#171d2d] border-r border-slate-800/80 flex flex-col transition-transform lg:translate-x-0 lg:static ${
+        aria-label="Menu principal"
+        className={`mobile-drawer fixed inset-y-0 left-0 z-40 w-[62vw] min-w-[205px] max-w-[230px] lg:w-[76px] lg:min-w-0 lg:max-w-none bg-[#111827] border-r border-white/10 flex flex-col shadow-2xl shadow-slate-950/40 transition-transform duration-300 ease-out lg:shadow-none lg:translate-x-0 lg:static ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="h-16 flex items-center px-3 lg:px-0 lg:justify-center border-b border-white/5">
+        <div className="h-16 flex items-center px-3 lg:px-0 lg:justify-center border-b border-white/10">
           <button
             onClick={() => goToTab('kanban')}
             className="flex items-center gap-3 lg:gap-0"
@@ -858,14 +878,16 @@ export default function App() {
             </div>
           </button>
           <button
+            type="button"
+            aria-label="Recolher menu"
             onClick={() => setMobileMenuOpen(false)}
-            className="ml-auto lg:hidden p-2 rounded-lg text-slate-400 hover:bg-white/10 hover:text-white"
+            className="ml-auto lg:hidden grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/10 text-white shadow-sm transition active:scale-95"
           >
-            <X className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-1.5">
           {railNavItems.map((item) => {
             const Icon = item.icon;
             const active = activeTab === item.id;
@@ -877,11 +899,11 @@ export default function App() {
                 className={`relative w-full flex items-center gap-3 lg:flex-col lg:gap-1 px-3 lg:px-1 py-2.5 lg:py-2 rounded-xl transition ${
                   active
                     ? 'bg-[#635bff] text-white shadow-lg shadow-indigo-950/25'
-                    : 'text-slate-400 hover:bg-white/7 hover:text-white'
+                    : 'text-white/85 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <Icon className="w-[18px] h-[18px] shrink-0" />
-                <span className="text-xs lg:text-[9px] font-medium leading-none">{item.label}</span>
+                <span className="text-[13px] lg:text-[9px] font-semibold leading-none text-current">{item.label}</span>
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className={`ml-auto lg:absolute lg:right-1 lg:top-1 min-w-4 h-4 px-1 rounded-full text-[9px] font-bold flex items-center justify-center ${
                     active ? 'bg-white text-indigo-700' : 'bg-indigo-500 text-white'
@@ -894,7 +916,7 @@ export default function App() {
           })}
         </nav>
 
-        <div className="px-2 pb-2 space-y-1 border-t border-white/5 pt-2">
+        <div className="px-2 pb-2 space-y-1 border-t border-white/10 pt-2">
           {railBottomItems.map((item) => {
             const Icon = item.icon;
             const active = activeTab === item.id;
@@ -904,7 +926,7 @@ export default function App() {
                 onClick={() => goToTab(item.id)}
                 title={item.label}
                 className={`w-full flex items-center gap-3 lg:flex-col lg:gap-1 px-3 lg:px-1 py-2.5 lg:py-2 rounded-xl transition ${
-                  active ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/7 hover:text-white'
+                  active ? 'bg-white/15 text-white' : 'text-white/85 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <Icon className="w-[18px] h-[18px]" />
@@ -928,7 +950,7 @@ export default function App() {
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 lg:flex-col lg:gap-1 px-3 lg:px-1 py-2 rounded-xl text-slate-500 hover:bg-rose-500/10 hover:text-rose-300 transition"
+              className="w-full flex items-center gap-3 lg:flex-col lg:gap-1 px-3 lg:px-1 py-2.5 rounded-xl text-rose-200 hover:bg-rose-500/15 hover:text-white transition"
               title="Sair"
             >
               <LogOut className="w-[17px] h-[17px]" />
@@ -936,6 +958,15 @@ export default function App() {
             </button>
           </div>
         </div>
+
+        <button
+          type="button"
+          aria-label="Recolher menu lateral"
+          onClick={() => setMobileMenuOpen(false)}
+          className="absolute -right-5 top-24 lg:hidden grid h-11 w-11 place-items-center rounded-full border-4 border-[#f5f7fb] bg-[#635bff] text-white shadow-lg active:scale-95"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
       </aside>
 
       {/* Main Content Area */}
@@ -944,8 +975,11 @@ export default function App() {
         <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
           <div className="h-16 px-3 sm:px-5 flex items-center gap-3">
             <button
+              type="button"
+              aria-label="Abrir menu"
+              aria-expanded={mobileMenuOpen}
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-lg border border-slate-200 text-slate-600"
+              className="lg:hidden grid h-10 w-10 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm active:scale-95"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -1953,7 +1987,7 @@ export default function App() {
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
+      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pt-2 backdrop-blur-xl lg:hidden">
         <div className="grid grid-cols-5 gap-1">
           {[
             { id: 'dashboard' as NavTab, label: 'Início', icon: LayoutDashboard },
@@ -1982,8 +2016,13 @@ export default function App() {
             );
           })}
           <button
+            type="button"
+            aria-label="Abrir mais opções"
+            aria-expanded={mobileMenuOpen}
             onClick={() => setMobileMenuOpen(true)}
-            className="flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold text-slate-500"
+            className={`flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold ${
+              mobileMenuOpen ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500'
+            }`}
           >
             <Menu className="w-5 h-5" />
             <span>Mais</span>
