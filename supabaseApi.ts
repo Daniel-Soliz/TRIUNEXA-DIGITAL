@@ -655,7 +655,7 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         if (status === 429 || authMessage.includes('rate limit')) {
           return jsonResponse(
             {
-              error: 'O provedor de e-mail recusou este envio por limite externo. A TRUINEXA não está bloqueando novas tentativas.',
+              error: 'Não foi possível enviar outro e-mail agora. Tente novamente em instantes.',
             },
             429
           );
@@ -1023,7 +1023,7 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         if (status === 429 || authMessage.includes('rate limit')) {
           return jsonResponse(
             {
-              error: 'O provedor de e-mail recusou este envio por limite externo. A TRUINEXA não está bloqueando novas tentativas.',
+              error: 'Não foi possível enviar outro e-mail agora. Tente novamente em instantes.',
             },
             429
           );
