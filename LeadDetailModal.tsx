@@ -154,8 +154,8 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm">
-      <div className="bg-slate-900 border-l border-slate-800 w-full max-w-4xl h-full flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm">
+      <div className="bg-slate-900 border-l border-slate-800 w-full max-w-4xl h-[100dvh] flex flex-col shadow-2xl overflow-hidden">
         {/* Top Header */}
         <div className="px-6 py-4 border-b border-slate-800 bg-slate-950/80 flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -327,7 +327,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
         </div>
 
         {/* Main Body: Two Columns (Left: Informações & Oportunidade, Right: Histórico Timeline) */}
-        <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
           {/* Left Column */}
           <div className="lg:col-span-6 space-y-6">
             {/* Oportunidade Card */}
