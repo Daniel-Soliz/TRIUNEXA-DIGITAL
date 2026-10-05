@@ -95,6 +95,12 @@ const QUICK_FILTERS = [
 
 type QuickFilterType = (typeof QUICK_FILTERS)[number];
 
+function isPasswordRecoveryUrl() {
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const searchParams = new URLSearchParams(window.location.search);
+  return searchParams.get('recovery') === '1' || hashParams.get('type') === 'recovery';
+}
+
 export default function App() {
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -131,6 +137,15 @@ export default function App() {
 
         const { data } = await supabase.auth.getUser();
         const authUser = data.user;
+
+        // A recovery link creates a temporary Supabase session. Do not treat
+        // that session as a normal CRM login; keep LoginView visible so the
+        // user can choose and confirm the new password.
+        if (isPasswordRecoveryUrl()) {
+          setCurrentUser(null);
+          return;
+        }
+
         if (!authUser) {
           setCurrentUser(null);
           return;
@@ -189,7 +204,12 @@ export default function App() {
       void refreshState();
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY' || isPasswordRecoveryUrl()) {
+        setCurrentUser(null);
+        return;
+      }
+
       window.setTimeout(() => {
         void refreshState();
       }, 0);
