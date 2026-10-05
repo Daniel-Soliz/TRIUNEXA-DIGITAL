@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Redefinir senha — TRUINEXA DIGITAL</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Arial,sans-serif;background:#f8fafc;color:#0f172a;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:100%;max-width:520px;background:#fff;border:1px solid #e2e8f0;border-radius:28px;padding:32px;box-shadow:0 24px 60px rgba(15,23,42,.12)}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:28px}.logo{width:48px;height:48px;border-radius:14px}.brand h2{margin:0;font-size:18px}.brand p{margin:2px 0 0;color:#64748b;font-size:12px}
+    h1{font-size:30px;line-height:1.15;margin:0 0 8px}.subtitle{color:#64748b;line-height:1.6;margin:0 0 24px}
+    label{display:block;font-size:13px;font-weight:700;margin:16px 0 7px}
+    input{width:100%;padding:14px 15px;border:1px solid #cbd5e1;border-radius:13px;font-size:15px;outline:none;background:#f8fafc}
+    input:focus{border-color:#0f172a;background:#fff}
+    button{width:100%;margin-top:20px;border:0;border-radius:13px;background:#0f172a;color:white;padding:14px 18px;font-weight:800;font-size:15px;cursor:pointer}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .msg{display:none;margin:16px 0 0;padding:13px 14px;border-radius:13px;font-size:14px;line-height:1.45}
+    .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#047857}.err{background:#fff1f2;border:1px solid #fecdd3;color:#be123c}
+    .back{display:block;text-align:center;margin-top:18px;color:#475569;text-decoration:none;font-size:13px;font-weight:700}
+    .status{font-size:12px;color:#64748b;margin-top:14px;text-align:center}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand">
+      <img class="logo" src="./icons/truinexa-192.png" alt="TRUINEXA" />
+      <div><h2>TRUINEXA DIGITAL</h2><p>Recuperação de acesso</p></div>
+    </div>
+
+    <h1>Criar nova senha</h1>
+    <p class="subtitle">Digite uma nova senha para sua conta. Depois de salvar, você poderá voltar ao CRM e entrar normalmente.</p>
+
+    <div id="error" class="msg err"></div>
+    <div id="success" class="msg ok"></div>
+
+    <form id="form">
+      <label for="password">Nova senha</label>
+      <input id="password" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo de 8 caracteres" required />
+
+      <label for="confirm">Confirmar nova senha</label>
+      <input id="confirm" type="password" minlength="8" autocomplete="new-password" placeholder="Digite novamente" required />
+
+      <button id="submit" type="submit">Salvar nova senha</button>
+    </form>
+
+    <a class="back" href="./">Voltar para a TRUINEXA</a>
+    <div id="status" class="status">Validando seu link de recuperação...</div>
+  </main>
+
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+    const SUPABASE_URL = 'https://wsyxykfhxguhyojitpbl.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzeXh5a2ZoeGd1aHlvaml0cGJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwNTQ5MjcsImV4cCI6MjA3MzYzMDkyN30.m2Vla7lLLbmIuzvYqfYZK10yUWabuWH4D2Nj8T1yEw8';
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    });
+
+    const form = document.getElementById('form');
+    const password = document.getElementById('password');
+    const confirm = document.getElementById('confirm');
+    const submit = document.getElementById('submit');
+    const errorBox = document.getElementById('error');
+    const successBox = document.getElementById('success');
+    const status = document.getElementById('status');
+
+    function showError(message) {
+      successBox.style.display = 'none';
+      errorBox.textContent = message;
+      errorBox.style.display = 'block';
+    }
+
+    function showSuccess(message) {
+      errorBox.style.display = 'none';
+      successBox.textContent = message;
+      successBox.style.display = 'block';
+    }
+
+    async function ensureSession() {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) throw error;
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
+      // For implicit recovery links, supabase-js reads the access token from the hash.
+      await new Promise(resolve => setTimeout(resolve, 250));
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (!data.session) {
+        throw new Error('Este link de recuperação é inválido ou expirou. Solicite um novo link no CRM.');
+      }
+      status.textContent = 'Link validado. Você já pode definir sua nova senha.';
+    }
+
+    ensureSession().catch((error) => {
+      status.textContent = '';
+      showError(error.message || 'Não foi possível validar este link de recuperação.');
+      submit.disabled = true;
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorBox.style.display = 'none';
+      successBox.style.display = 'none';
+
+      if (password.value.length < 8) {
+        showError('Use uma senha com pelo menos 8 caracteres.');
+        return;
+      }
+      if (password.value !== confirm.value) {
+        showError('As duas senhas precisam ser iguais.');
+        return;
+      }
+
+      submit.disabled = true;
+      submit.textContent = 'Salvando...';
+
+      const { error } = await supabase.auth.updateUser({ password: password.value });
+      if (error) {
+        showError(error.message || 'Não foi possível atualizar a senha.');
+        submit.disabled = false;
+        submit.textContent = 'Salvar nova senha';
+        return;
+      }
+
+      showSuccess('Senha atualizada com sucesso. Você já pode voltar ao CRM e entrar com a nova senha.');
+      status.textContent = '';
+      password.value = '';
+      confirm.value = '';
+      submit.textContent = 'Senha atualizada';
+      await supabase.auth.signOut();
+    });
+  </script>
+</body>
+</html>
