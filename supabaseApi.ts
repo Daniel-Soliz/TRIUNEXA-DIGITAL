@@ -48,22 +48,9 @@ function getAppUrl() {
 }
 
 function getRecoveryRedirectUrl() {
-  // Password-reset e-mails must open a URL the user can actually reach.
-  // When recovery is requested from local development, never send the e-mail
-  // back to localhost; use the published TRUINEXA instead.
-  const configured = String(import.meta.env.VITE_APP_URL || '').trim();
-  const isLocalhost =
-    window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1';
-
-  const baseUrl = configured
-    ? (configured.endsWith('/') ? configured : `${configured}/`)
-    : isLocalhost
-      ? PRODUCTION_APP_URL
-      : getAppUrl();
-
-  const separator = baseUrl.includes('?') ? '&' : '?';
-  return `${baseUrl}${separator}recovery=1`;
+  // Always send password recovery to a dedicated public page.
+  // This avoids routing recovery through localhost or the CRM shell.
+  return `${PRODUCTION_APP_URL}recovery.html`;
 }
 
 const defaultPermissions = {
