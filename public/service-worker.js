@@ -1,4 +1,4 @@
-const CACHE_NAME = 'truinexa-pwa-v1';
+const CACHE_NAME = 'truinexa-pwa-v2';
 const APP_ROOT = self.registration.scope;
 
 const shellAssets = [
@@ -55,19 +55,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Prefer the newest deployed asset. Fall back to cache only when offline.
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached || Response.error());
-
-      return cached || network;
-    })
+    fetch(request)
+      .then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(async () => {
+        return (await caches.match(request)) || Response.error();
+      })
   );
 });
