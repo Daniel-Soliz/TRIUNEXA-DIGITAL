@@ -541,7 +541,16 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       }
 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error || !data.session) return errorResponse(error?.message || 'Falha na autenticação.', 401);
+      if (error || !data.session) {
+        const message = String(error?.message || '').toLowerCase();
+        if (message.includes('invalid login credentials')) {
+          return errorResponse('E-mail ou senha incorretos.', 401);
+        }
+        if (message.includes('email not confirmed')) {
+          return errorResponse('Este e-mail ainda não foi confirmado.', 401);
+        }
+        return errorResponse('Não foi possível entrar com este acesso.', 401);
+      }
 
       const profile = await currentProfile();
       if (!profile) {
