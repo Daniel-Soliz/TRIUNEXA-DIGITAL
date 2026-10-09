@@ -52,9 +52,9 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
   isOpen,
   onClose,
   currentUser,
-  users,
+  users: _users,
   services,
-  distributionMode,
+  distributionMode: _distributionMode,
   onSubmit,
 }) => {
   const [name, setName] = useState('');
@@ -75,11 +75,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
   );
   const [estimatedValue, setEstimatedValue] = useState<number>(
     services[0]?.basePrice || 1200
-  );
-  const [responsibleId, setResponsibleId] = useState<string>(
-    distributionMode === 'capture' || distributionMode === 'automatic'
-      ? ''
-      : currentUser.id
   );
   const [stage, setStage] = useState<KanbanStage>('NOVO LEAD');
   const [nextAction, setNextAction] = useState('Realizar primeiro contato via WhatsApp');
@@ -136,7 +131,8 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
         serviceInterest,
         serviceCategory: category,
         estimatedValue,
-        responsibleId: responsibleId || null,
+        responsibleId: currentUser.id,
+        responsibleName: currentUser.name,
         stage,
         nextAction,
         observations,
@@ -359,29 +355,6 @@ export const NewLeadModal: React.FC<NewLeadModalProps> = ({
                 onChange={(e) => setEstimatedValue(Number(e.target.value))}
                 className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white font-mono focus:outline-none focus:border-indigo-500"
               />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
-                Responsável pelo Atendimento
-              </label>
-              <select
-                value={responsibleId}
-                onChange={(e) => setResponsibleId(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white focus:outline-none focus:border-indigo-500"
-              >
-                <option value="">
-                  {distributionMode === 'automatic'
-                    ? '⚡ Automático (Fila Arthur → Pedro → Daniel)'
-                    : '🔓 Disponível para Captura (ASSUMIR CLIENTE)'}
-                </option>
-                {users
-                  .filter((u) => u.status === 'active')
-                  .map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.name} ({u.roleTitle})
-                    </option>
-                  ))}
-              </select>
             </div>
           </div>
 
