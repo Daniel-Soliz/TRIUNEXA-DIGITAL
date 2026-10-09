@@ -55,7 +55,6 @@ import {
   QuickAppointmentModal,
 } from './ActionModals';
 import {
-  AtendimentoModule,
   AgendaModule,
   ServicesModule,
   ProjectsModule,
@@ -64,6 +63,7 @@ import {
 } from './ModulesView';
 import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supabaseApi';
 import { InstallAppButton } from './InstallAppButton';
+import { WhatsAppInbox } from './WhatsAppInbox';
 
 type NavTab =
   | 'dashboard'
@@ -1676,24 +1676,10 @@ export default function App() {
               VIEW 4: ATENDIMENTO & WHATSAPP + FUNIL AUTOMATIZADO
           ================================================================= */}
           {activeTab === 'atendimento' && (
-            <AtendimentoModule
+            <WhatsAppInbox
               state={crmState}
               currentUser={currentUser}
-              onOpenWhatsApp={(lead) => setWhatsAppLead(lead)}
-              onSelectLead={(lead) => setSelectedLeadId(lead.id)}
-              onMoveStage={handleMoveStage}
-              onCreateFollowUpTask={async (lead, suggestionText) => {
-                await handleCreateAppointment({
-                  leadId: lead.id,
-                  responsibleId: lead.responsibleId || currentUser.id,
-                  type: 'Follow-up',
-                  title: `${suggestionText} — ${lead.company}`,
-                  date: new Date().toISOString().slice(0, 10),
-                  time: '15:00',
-                  notes: 'Criado automaticamente pelo Funil Automatizado da TRUINEXA DIGITAL.',
-                });
-              }}
-              onUpdateConfig={handleUpdateConfig}
+              onSelectLead={(leadId) => setSelectedLeadId(leadId)}
             />
           )}
 
