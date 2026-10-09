@@ -30,7 +30,6 @@ export interface User {
 
 export type KanbanStage =
   | 'NOVO LEAD'
-  | 'ASSUMIDO'
   | 'CONTATO INICIADO'
   | 'RESPONDEU'
   | 'PROPOSTA'
@@ -54,14 +53,6 @@ export const KANBAN_STAGES: {
     color: '#38bdf8',
     badgeClass: 'bg-sky-500/15 text-sky-700 border-sky-500/30',
     dotClass: 'bg-sky-400',
-  },
-  {
-    id: 'ASSUMIDO',
-    label: 'Assumido',
-    description: 'Entrou na carteira de um vendedor',
-    color: '#fbbf24',
-    badgeClass: 'bg-amber-500/15 text-amber-700 border-amber-500/30',
-    dotClass: 'bg-amber-400',
   },
   {
     id: 'CONTATO INICIADO',
