@@ -88,60 +88,6 @@ export const AtendimentoModule: React.FC<{
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-slate-900 p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <span className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold">
-              Acesso único
-            </span>
-            <h3 className="mt-1 text-base font-display font-bold text-white">
-              Login padrão da TRUINEXA
-            </h3>
-            <p className="mt-1 text-xs text-slate-400">
-              E-mail: <strong className="text-slate-200">{currentUser.email}</strong>
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              Novos cadastros e acessos comerciais estão bloqueados. Use somente esta conta administrativa.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            disabled={passwordGenerating}
-            onClick={() => void generateStandardPassword()}
-            className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
-          >
-            {passwordGenerating ? 'Gerando...' : 'Gerar nova senha padrão'}
-          </button>
-        </div>
-
-        {generatedPassword && (
-          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
-              Senha alterada com sucesso
-            </div>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <code className="flex-1 select-all rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white">
-                {generatedPassword}
-              </code>
-              <button
-                type="button"
-                onClick={() => void navigator.clipboard?.writeText(generatedPassword || '')}
-                className="rounded-lg border border-emerald-500/30 px-3 py-2 text-xs font-semibold text-emerald-300"
-              >
-                Copiar senha
-              </button>
-            </div>
-            <p className="mt-2 text-[11px] text-emerald-200/70">
-              Guarde esta senha agora. Depois que sair desta tela, ela não será exibida novamente.
-            </p>
-          </div>
-        )}
-
-        {passwordGenerationError && (
-          <p className="mt-3 text-xs text-rose-400">{passwordGenerationError}</p>
-        )}
-      </div>
       {/* Top Mode Banner */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         <div className="lg:col-span-7 rounded-2xl border border-slate-800 bg-slate-900/70 p-5 flex flex-col justify-between">
@@ -1485,6 +1431,60 @@ export const TeamAndSettingsModule: React.FC<{
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-slate-900 p-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <span className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold">
+              Acesso único
+            </span>
+            <h3 className="mt-1 text-base font-display font-bold text-white">
+              Login padrão da TRUINEXA
+            </h3>
+            <p className="mt-1 text-xs text-slate-400">
+              E-mail: <strong className="text-slate-200">{currentUser.email}</strong>
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Novos cadastros e acessos comerciais estão bloqueados. Use somente esta conta administrativa.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            disabled={passwordGenerating}
+            onClick={() => void generateStandardPassword()}
+            className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
+          >
+            {passwordGenerating ? 'Gerando...' : 'Gerar nova senha padrão'}
+          </button>
+        </div>
+
+        {generatedPassword && (
+          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
+              Senha alterada com sucesso
+            </div>
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <code className="flex-1 select-all rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white">
+                {generatedPassword}
+              </code>
+              <button
+                type="button"
+                onClick={() => void navigator.clipboard?.writeText(generatedPassword || '')}
+                className="rounded-lg border border-emerald-500/30 px-3 py-2 text-xs font-semibold text-emerald-300"
+              >
+                Copiar senha
+              </button>
+            </div>
+            <p className="mt-2 text-[11px] text-emerald-200/70">
+              Guarde esta senha agora. Depois que sair desta tela, ela não será exibida novamente.
+            </p>
+          </div>
+        )}
+
+        {passwordGenerationError && (
+          <p className="mt-3 text-xs text-rose-400">{passwordGenerationError}</p>
+        )}
+      </div>
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
         <div>
           <span className="text-xs font-mono uppercase tracking-wider text-emerald-400 font-semibold block">
