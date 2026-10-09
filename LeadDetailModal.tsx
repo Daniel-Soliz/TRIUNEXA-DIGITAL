@@ -105,6 +105,10 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
     setEditing(false);
   };
 
+  const handleClaimLead = async () => {
+    await _onClaimLead(lead);
+  };
+
   const handleStageSelect = async (newStage: KanbanStage) => {
     if (newStage === 'FECHADO') {
       onOpenCloseDeal(lead);
