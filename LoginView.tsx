@@ -206,7 +206,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         ? 'Recuperar senha'
         : mode === 'reset'
           ? 'Definir nova senha'
-          : 'Acessar o CRM';
+          : 'Acesso único TRUINEXA';
 
   const subtitle =
     mode === 'signup'
@@ -215,7 +215,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         ? 'Enviaremos um link seguro para o seu e-mail.'
         : mode === 'reset'
           ? 'Escolha uma nova senha para sua conta.'
-          : 'Prospecção, carteira, atendimento e vendas em um só lugar.';
+          : 'Use o único e-mail administrativo e a senha para entrar.';
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-5 py-10">
@@ -390,27 +390,15 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </button>
               )}
               {mode === 'login' && (
-                <>
-                  <button
-                    onClick={() => {
-                      clearFeedback();
-                      setMode('signup');
-                    }}
-                    className="font-semibold text-slate-700 hover:text-slate-950 inline-flex items-center gap-1.5"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    Primeiro acesso
-                  </button>
-                  <button
-                    onClick={() => {
-                      clearFeedback();
-                      setMode('recovery');
-                    }}
-                    className="text-slate-500 hover:text-slate-900"
-                  >
-                    Esqueci minha senha
-                  </button>
-                </>
+                <button
+                  onClick={() => {
+                    clearFeedback();
+                    setMode('recovery');
+                  }}
+                  className="text-slate-500 hover:text-slate-900"
+                >
+                  Esqueci minha senha
+                </button>
               )}
             </div>
           </div>
@@ -425,22 +413,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
               Um CRM simples para transformar oportunidade em cliente.
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              Leads disponíveis entram sem responsável. Quando um membro da equipe assume a oportunidade,
-              ela passa para a carteira dele e o histórico fica sincronizado em tempo real.
+              Um único acesso controla clientes, funil, WhatsApp, agenda, serviços, projetos e configurações
+              sem separar a operação por vendedor.
             </p>
           </div>
 
-          <div className="mt-10 space-y-3 text-sm text-slate-300">
+          <div className="mt-10 text-sm text-slate-300">
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <strong className="text-white">Administrador</strong>
+              <strong className="text-white">Acesso padrão único</strong>
               <p className="mt-1 text-xs leading-5 text-slate-400">
-                Acesso total ao funil, equipe, serviços, projetos e configurações.
-              </p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <strong className="text-white">Comercial</strong>
-              <p className="mt-1 text-xs leading-5 text-slate-400">
-                Visualiza oportunidades livres e os clientes da própria carteira.
+                Permissão administrativa completa para operar toda a TRUINEXA em uma única conta.
               </p>
             </div>
           </div>
