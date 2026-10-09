@@ -126,7 +126,7 @@ export const AtendimentoModule: React.FC<{
               </code>
               <button
                 type="button"
-                onClick={() => void navigator.clipboard?.writeText(generatedPassword)}
+                onClick={() => void navigator.clipboard?.writeText(generatedPassword || '')}
                 className="rounded-lg border border-emerald-500/30 px-3 py-2 text-xs font-semibold text-emerald-300"
               >
                 Copiar senha
