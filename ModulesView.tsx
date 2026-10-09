@@ -35,7 +35,7 @@ import {
   ProjectStage,
   KanbanStage,
 } from './crm';
-import { crmFetch } from './supabaseApi';
+import { crmFetch, supabase } from './supabaseApi';
 
 /* ============================================================================
    1. ATENDIMENTO & WHATSAPP + FUNIL AUTOMATIZADO (Section 10 & 20)
@@ -1366,37 +1366,60 @@ export const TeamAndSettingsModule: React.FC<{
   const [recoverySending, setRecoverySending] = useState<string | null>(null);
   const [recoverySent, setRecoverySent] = useState<string | null>(null);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
-  const [passwordGenerating, setPasswordGenerating] = useState(false);
-  const [passwordGenerationError, setPasswordGenerationError] = useState<string | null>(null);
+  const [provisioningAccess, setProvisioningAccess] = useState(false);
+  const [accessProvisionError, setAccessProvisionError] = useState<string | null>(null);
+  const [provisionedCredentials, setProvisionedCredentials] = useState<{
+    adminEmail: string;
+    adminPassword: string;
+    commercialEmail: string;
+    commercialPassword: string;
+  } | null>(null);
   const isAdmin = currentUser.role === 'admin';
 
-  const generateStandardPassword = async () => {
+  const randomPassword = (prefix: string) => {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*_';
-    const bytes = crypto.getRandomValues(new Uint8Array(18));
-    const password = 'TRX-' + Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+    const bytes = crypto.getRandomValues(new Uint8Array(14));
+    return prefix + Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+  };
 
-    setPasswordGenerating(true);
-    setPasswordGenerationError(null);
-    setGeneratedPassword(null);
+  const provisionStandardAccess = async () => {
+    const adminEmail = 'adm.truinexa@gmail.com';
+    const commercialEmail = 'comercial.truinexa@gmail.com';
+    const adminPassword = randomPassword('TRX-ADM#');
+    const commercialPassword = randomPassword('TRX-COM#');
+
+    setProvisioningAccess(true);
+    setAccessProvisionError(null);
+    setProvisionedCredentials(null);
 
     try {
-      const response = await crmFetch('/api/auth/change-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ newPassword: password }),
+      const { data, error } = await supabase.functions.invoke('truinexa-access-admin', {
+        body: {
+          action: 'provision',
+          adminEmail,
+          adminPassword,
+          commercialEmail,
+          commercialPassword,
+        },
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Não foi possível alterar a senha.');
-      }
-      setGeneratedPassword(password);
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data?.message || 'Não foi possível criar os acessos.');
+
+      setProvisionedCredentials({
+        adminEmail,
+        adminPassword,
+        commercialEmail,
+        commercialPassword,
+      });
     } catch (error) {
-      setPasswordGenerationError(
-        error instanceof Error ? error.message : 'Não foi possível gerar a nova senha.'
+      setAccessProvisionError(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível criar os acessos padrão.'
       );
     } finally {
-      setPasswordGenerating(false);
+      setProvisioningAccess(false);
     }
   };
 
@@ -1435,54 +1458,93 @@ export const TeamAndSettingsModule: React.FC<{
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <span className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold">
-              Acesso único
+              Acessos oficiais
             </span>
             <h3 className="mt-1 text-base font-display font-bold text-white">
-              Login padrão da TRUINEXA
+              Somente ADM + Comercial
             </h3>
-            <p className="mt-1 text-xs text-slate-400">
-              E-mail: <strong className="text-slate-200">{currentUser.email}</strong>
-            </p>
-            <p className="mt-1 text-[11px] text-slate-500">
-              Novos cadastros e acessos comerciais estão bloqueados. Use somente esta conta administrativa.
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              Cria ou redefine os dois logins reais no Supabase e bloqueia todos os outros acessos antigos.
             </p>
           </div>
 
           <button
             type="button"
-            disabled={passwordGenerating}
-            onClick={() => void generateStandardPassword()}
+            disabled={provisioningAccess}
+            onClick={() => void provisionStandardAccess()}
             className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
           >
-            {passwordGenerating ? 'Gerando...' : 'Gerar nova senha padrão'}
+            {provisioningAccess ? 'Criando acessos...' : 'Criar/Redefinir ADM + Comercial'}
           </button>
         </div>
 
-        {generatedPassword && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-300">ADM</div>
+            <div className="mt-1 text-xs font-semibold text-white">adm.truinexa@gmail.com</div>
+            <p className="mt-1 text-[10px] text-slate-500">Acesso completo e configurações.</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Comercial</div>
+            <div className="mt-1 text-xs font-semibold text-white">comercial.truinexa@gmail.com</div>
+            <p className="mt-1 text-[10px] text-slate-500">CRM, clientes, WhatsApp, agenda e operação.</p>
+          </div>
+        </div>
+
+        {provisionedCredentials && (
           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-300">
-              Senha alterada com sucesso
+            <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-300">
+              Acessos criados com sucesso — copie agora
             </div>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <code className="flex-1 select-all rounded-lg bg-slate-950 px-3 py-2 text-sm font-bold text-white">
-                {generatedPassword}
-              </code>
-              <button
-                type="button"
-                onClick={() => void navigator.clipboard?.writeText(generatedPassword || '')}
-                className="rounded-lg border border-emerald-500/30 px-3 py-2 text-xs font-semibold text-emerald-300"
-              >
-                Copiar senha
-              </button>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg bg-slate-950 p-3">
+                <div className="text-[10px] font-semibold text-indigo-300">ADM</div>
+                <div className="mt-1 select-all text-xs text-white">{provisionedCredentials.adminEmail}</div>
+                <code className="mt-2 block select-all break-all text-xs font-bold text-emerald-300">
+                  {provisionedCredentials.adminPassword}
+                </code>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void navigator.clipboard?.writeText(
+                      `ADM\nE-mail: ${provisionedCredentials.adminEmail}\nSenha: ${provisionedCredentials.adminPassword}`
+                    )
+                  }
+                  className="mt-2 text-[10px] font-semibold text-slate-300 hover:text-white"
+                >
+                  Copiar ADM
+                </button>
+              </div>
+              <div className="rounded-lg bg-slate-950 p-3">
+                <div className="text-[10px] font-semibold text-emerald-300">COMERCIAL</div>
+                <div className="mt-1 select-all text-xs text-white">{provisionedCredentials.commercialEmail}</div>
+                <code className="mt-2 block select-all break-all text-xs font-bold text-emerald-300">
+                  {provisionedCredentials.commercialPassword}
+                </code>
+                <button
+                  type="button"
+                  onClick={() =>
+                    void navigator.clipboard?.writeText(
+                      `COMERCIAL\nE-mail: ${provisionedCredentials.commercialEmail}\nSenha: ${provisionedCredentials.commercialPassword}`
+                    )
+                  }
+                  className="mt-2 text-[10px] font-semibold text-slate-300 hover:text-white"
+                >
+                  Copiar Comercial
+                </button>
+              </div>
             </div>
-            <p className="mt-2 text-[11px] text-emerald-200/70">
-              Guarde esta senha agora. Depois que sair desta tela, ela não será exibida novamente.
+            <p className="mt-3 text-[11px] leading-5 text-emerald-100/80">
+              Todos os demais perfis foram desativados e bloqueados para novo login. Depois de copiar,
+              saia da conta atual e entre com o novo ADM.
             </p>
           </div>
         )}
 
-        {passwordGenerationError && (
-          <p className="mt-3 text-xs text-rose-400">{passwordGenerationError}</p>
+        {accessProvisionError && (
+          <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+            {accessProvisionError}
+          </div>
         )}
       </div>
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
