@@ -206,7 +206,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         ? 'Recuperar senha'
         : mode === 'reset'
           ? 'Definir nova senha'
-          : 'Acesso único TRUINEXA';
+          : 'Acessar a TRUINEXA';
 
   const subtitle =
     mode === 'signup'
@@ -215,7 +215,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         ? 'Enviaremos um link seguro para o seu e-mail.'
         : mode === 'reset'
           ? 'Escolha uma nova senha para sua conta.'
-          : 'Use o único e-mail administrativo e a senha para entrar.';
+          : 'Entre com o acesso ADM ou Comercial.';
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-5 py-10">
@@ -420,9 +420,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
           <div className="mt-10 text-sm text-slate-300">
             <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-              <strong className="text-white">Acesso padrão único</strong>
+              <strong className="text-white">Dois acessos padrão</strong>
               <p className="mt-1 text-xs leading-5 text-slate-400">
-                Permissão administrativa completa para operar toda a TRUINEXA em uma única conta.
+                ADM com acesso completo e Comercial com acesso operacional ao CRM.
               </p>
             </div>
           </div>
