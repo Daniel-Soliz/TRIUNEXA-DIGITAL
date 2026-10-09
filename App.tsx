@@ -82,15 +82,12 @@ type NavTab =
 
 const QUICK_FILTERS = [
   'Todos',
-  'Sites',
-  'Flyers',
-  'Marketing',
-  'Consultoria',
-  'Suporte',
   'Novos',
-  'Interessados',
+  'Contato',
+  'Respondeu',
   'Propostas',
   'Fechados',
+  'Sem retorno',
   'Perdidos',
 ] as const;
 
@@ -105,7 +102,7 @@ function isPasswordRecoveryUrl() {
 export default function App() {
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<NavTab>('kanban');
+  const [activeTab, setActiveTab] = useState<NavTab>('leads');
   const [darkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [realtimePulse, setRealtimePulse] = useState<string | null>(null);
@@ -330,39 +327,23 @@ export default function App() {
       // Quick Filter (Section 12)
       if (quickFilter !== 'Todos') {
         switch (quickFilter) {
-          case 'Sites':
-            if (lead.serviceCategory !== 'Desenvolvimento Digital') return false;
-            break;
-          case 'Flyers':
-            if (lead.serviceCategory !== 'Design') return false;
-            break;
-          case 'Marketing':
-            if (lead.serviceCategory !== 'Marketing Digital') return false;
-            break;
-          case 'Consultoria':
-            if (lead.serviceCategory !== 'Consultoria') return false;
-            break;
-          case 'Suporte':
-            if (lead.serviceCategory !== 'Suporte Técnico') return false;
-            break;
           case 'Novos':
-            if (lead.stage !== 'NOVO LEAD' && lead.stage !== 'ASSUMIDO')
-              return false;
+            if (lead.stage !== 'NOVO LEAD' && lead.stage !== 'ASSUMIDO') return false;
             break;
-          case 'Interessados':
-            if (lead.stage !== 'RESPONDEU' && lead.stage !== 'CONTATO INICIADO')
-              return false;
+          case 'Contato':
+            if (lead.stage !== 'CONTATO INICIADO') return false;
+            break;
+          case 'Respondeu':
+            if (lead.stage !== 'RESPONDEU') return false;
             break;
           case 'Propostas':
-            if (
-              lead.stage !== 'PROPOSTA' &&
-              lead.stage !== 'NEGOCIAÇÃO' &&
-              lead.stage !== 'SEM RETORNO'
-            )
-              return false;
+            if (lead.stage !== 'PROPOSTA' && lead.stage !== 'NEGOCIAÇÃO') return false;
             break;
           case 'Fechados':
             if (lead.stage !== 'FECHADO') return false;
+            break;
+          case 'Sem retorno':
+            if (lead.stage !== 'SEM RETORNO') return false;
             break;
           case 'Perdidos':
             if (lead.stage !== 'PERDIDO') return false;
@@ -447,7 +428,15 @@ export default function App() {
     await crmFetch('/api/leads', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ actorId: currentUser.id, leadData }),
+      body: JSON.stringify({
+        actorId: currentUser.id,
+        leadData: {
+          ...leadData,
+          responsibleId: currentUser.id,
+          responsibleName: currentUser.name,
+          stage: leadData.stage || 'NOVO LEAD',
+        },
+      }),
     });
   };
 
@@ -794,46 +783,31 @@ export default function App() {
   };
 
   const railNavItems: NavigationItem[] = [
-    { id: 'dashboard', label: 'Início', icon: LayoutDashboard },
-    { id: 'kanban', label: 'Funil', icon: Kanban, badge: visibleLeads.length },
-    { id: 'leads', label: 'Novos', icon: Users, badge: availableLeads.length },
-    { id: 'carteira', label: 'Carteira', icon: Award, badge: myPortfolioCount },
+    { id: 'leads', label: 'Clientes', icon: Users, badge: visibleLeads.length },
+    { id: 'kanban', label: 'Funil', icon: Kanban },
     {
       id: 'agenda',
       label: 'Agenda',
       icon: Calendar,
       badge: crmState.appointments.filter((a) => a.status === 'pendente').length,
     },
-    { id: 'atendimento', label: 'Atendimento', icon: MessageSquare },
-    { id: 'tarefas', label: 'Tarefas', icon: CheckSquare },
-    { id: 'servicos', label: 'Serviços', icon: Briefcase },
-    { id: 'projetos', label: 'Projetos', icon: FolderKanban, badge: crmState.projects.length },
-    { id: 'relatorios', label: 'Relatórios', icon: BarChart3 },
   ];
 
-  const railBottomItems: NavigationItem[] = [
-    { id: 'equipe', label: 'Equipe', icon: UserCog },
-    { id: 'configuracoes', label: 'Ajustes', icon: Settings },
-  ];
+  const railBottomItems: NavigationItem[] = [];
 
   const goToTab = (tab: NavTab) => {
-    if (tab === 'leads') {
-      setResponsibleFilter('unassigned');
-    } else if (tab === 'carteira') {
-      setResponsibleFilter(currentUser.id);
-    }
+    setResponsibleFilter('all');
     setActiveTab(tab);
     setMobileMenuOpen(false);
   };
 
-  const isLeadWorkspace =
-    activeTab === 'kanban' || activeTab === 'leads' || activeTab === 'carteira';
+  const isLeadWorkspace = activeTab === 'kanban' || activeTab === 'leads';
 
   const activeTitle: Record<NavTab, string> = {
     dashboard: 'Visão geral',
-    leads: 'Oportunidades',
+    leads: 'Clientes',
     carteira: 'Minha carteira',
-    kanban: 'Oportunidades',
+    kanban: 'Funil de vendas',
     atendimento: 'Atendimento',
     agenda: 'Agenda',
     tarefas: 'Tarefas',
@@ -1027,9 +1001,8 @@ export default function App() {
               <div className="py-2 flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="flex items-center gap-1">
                   {[
+                    { id: 'leads' as NavTab, label: 'Clientes' },
                     { id: 'kanban' as NavTab, label: 'Funil' },
-                    { id: 'leads' as NavTab, label: 'Novos' },
-                    { id: 'carteira' as NavTab, label: 'Carteira' },
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -1056,17 +1029,7 @@ export default function App() {
                   />
                 </div>
 
-                <select
-                  value={responsibleFilter}
-                  onChange={(e) => setResponsibleFilter(e.target.value)}
-                  className="hidden md:block h-10 px-3 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 focus:outline-none"
-                >
-                  <option value="all">Todos responsáveis</option>
-                  <option value="unassigned">Sem responsável</option>
-                  {crmState.users.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
+
               </div>
 
               <div className="pb-2 flex items-center gap-1.5 overflow-x-auto overscroll-x-contain">
@@ -1244,249 +1207,145 @@ export default function App() {
             </div>
           )}
 
-          {/* =================================================================
-              VIEW 3: LISTA DE LEADS & CAPTURA (Sections 4 & 16)
-          ================================================================= */}
+          {/* CLIENTES — visão única, rápida e sem carteiras */}
           {activeTab === 'leads' && (
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h1 className="text-lg font-display font-bold">
-                    Oportunidades disponíveis ({availableLeads.length})
-                  </h1>
-                  <p className="text-xs text-slate-400">
-                    Leads sem responsável ficam aqui até alguém assumir. Modo:{' '}
-                    <strong className="text-indigo-400 uppercase font-mono">
-                      {crmState.config.distributionMode}
-                    </strong>
-                  </p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Novos</div>
+                  <div className="mt-1 text-xl font-bold text-sky-600">
+                    {visibleLeads.filter((lead) => lead.stage === 'NOVO LEAD' || lead.stage === 'ASSUMIDO').length}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Em contato</div>
+                  <div className="mt-1 text-xl font-bold text-indigo-600">
+                    {visibleLeads.filter((lead) => ['CONTATO INICIADO','RESPONDEU','PROPOSTA','NEGOCIAÇÃO','SEM RETORNO'].includes(lead.stage)).length}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Fechados</div>
+                  <div className="mt-1 text-xl font-bold text-emerald-600">
+                    {visibleLeads.filter((lead) => lead.stage === 'FECHADO').length}
+                  </div>
                 </div>
               </div>
 
-              <div className="md:hidden space-y-3">
-                {availableLeads.map((lead) => (
-                  <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="font-display font-bold text-slate-900 truncate">{lead.company}</h3>
-                        <p className="mt-1 text-xs text-slate-500">
-                          {lead.neighborhood || lead.city} • {lead.segment}
-                        </p>
-                      </div>
-                      {lead.sourceVerifiedAt && (
-                        <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Validado
+              <div className="md:hidden space-y-2">
+                {visibleLeads.map((lead) => {
+                  const stageMeta = KANBAN_STAGES.find((stage) => stage.id === lead.stage) || KANBAN_STAGES[0];
+                  return (
+                    <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h3 className="font-display font-bold text-slate-900 truncate">{lead.company}</h3>
+                          <p className="mt-0.5 text-xs text-slate-500 truncate">
+                            {lead.segment} • {lead.neighborhood || lead.city}
+                          </p>
+                        </div>
+                        <span className={`shrink-0 px-2 py-1 rounded-md border text-[10px] font-semibold ${stageMeta.badgeClass}`}>
+                          {stageMeta.label}
                         </span>
-                      )}
-                    </div>
+                      </div>
 
-                    <div className="mt-3 rounded-xl bg-slate-50 p-3">
-                      <div className="text-[11px] text-slate-500">Solução sugerida</div>
-                      <div className="mt-0.5 text-sm font-semibold text-indigo-700">
+                      <p className="mt-3 text-xs font-medium text-indigo-700 line-clamp-2">
                         {lead.recommendedService || lead.serviceInterest}
-                      </div>
-                      {lead.opportunitySummary && (
-                        <div className="mt-1 text-[11px] leading-4 text-slate-500">
-                          {lead.opportunitySummary}
-                        </div>
-                      )}
-                      {lead.estimatedValue > 0 && (
-                        <div className="mt-1 text-xs font-mono font-bold text-emerald-600">
-                          R$ {lead.estimatedValue.toLocaleString('pt-BR')}
-                        </div>
-                      )}
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {lead.address && (
-                          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-slate-600">Mapa ✓</span>
-                        )}
-                        {lead.website && (
-                          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-slate-600">Site ✓</span>
-                        )}
-                        {lead.instagramUrl && (
-                          <span className="rounded-full bg-white px-2 py-1 text-[10px] font-medium text-slate-600">Instagram ✓</span>
-                        )}
-                        {lead.whatsapp && (
-                          <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">WhatsApp ✓</span>
-                        )}
+                      </p>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => void handleQuickWhatsApp(lead)}
+                          disabled={!lead.whatsapp}
+                          className="rounded-xl bg-emerald-600 px-3 py-3 text-sm font-bold text-white disabled:bg-slate-300"
+                        >
+                          WhatsApp
+                        </button>
+                        <button
+                          onClick={() => setSelectedLeadId(lead.id)}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700"
+                        >
+                          Ver cliente
+                        </button>
                       </div>
                     </div>
+                  );
+                })}
 
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => setSelectedLeadId(lead.id)}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700"
-                      >
-                        Ver análise
-                      </button>
-                      <button
-                        onClick={() => void handleClaimLead(lead)}
-                        className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm font-semibold text-indigo-700"
-                      >
-                        Só assumir
-                      </button>
-                      <button
-                        onClick={() => void handleClaimAndQuickWhatsApp(lead)}
-                        disabled={!lead.whatsapp}
-                        className="col-span-2 rounded-xl bg-emerald-600 px-3 py-3 text-sm font-bold text-white shadow-sm disabled:bg-slate-300 disabled:text-slate-500"
-                      >
-                        ASSUMIR + WHATSAPP
-                      </button>
-                    </div>
-                  </div>
-                ))}
-
-                {availableLeads.length === 0 && (
+                {visibleLeads.length === 0 && (
                   <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-                    Nenhuma oportunidade disponível agora.
+                    Nenhum cliente encontrado.
                   </div>
                 )}
               </div>
 
-              <div className="hidden md:block rounded-2xl border border-slate-800 bg-slate-900/60 overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-800 bg-slate-950/80 text-slate-400 font-mono uppercase">
-                      <th className="py-3.5 px-4">Empresa / Cliente</th>
-                      <th className="py-3.5 px-4">Localização & Segmento</th>
-                      <th className="py-3.5 px-4">Solução sugerida</th>
-                      <th className="py-3.5 px-4">Etapa Kanban</th>
-                      <th className="py-3.5 px-4">Responsável</th>
-                      <th className="py-3.5 px-4 text-right">Contato Rápido</th>
+              <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Empresa</th>
+                      <th className="px-4 py-3">Segmento / Bairro</th>
+                      <th className="px-4 py-3">WhatsApp</th>
+                      <th className="px-4 py-3">Solução sugerida</th>
+                      <th className="px-4 py-3">Etapa</th>
+                      <th className="px-4 py-3 text-right">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/70">
-                    {availableLeads.map((lead) => {
-                      const stageMeta =
-                        KANBAN_STAGES.find((s) => s.id === lead.stage) || KANBAN_STAGES[0];
+                  <tbody className="divide-y divide-slate-100">
+                    {visibleLeads.map((lead) => {
+                      const stageMeta = KANBAN_STAGES.find((stage) => stage.id === lead.stage) || KANBAN_STAGES[0];
                       return (
-                        <tr
-                          key={lead.id}
-                          onClick={() => setSelectedLeadId(lead.id)}
-                          className="hover:bg-slate-800/40 cursor-pointer transition"
-                        >
-                          <td className="py-3.5 px-4">
-                            <div className="font-display font-bold text-sm text-white">
-                              {lead.company}
-                            </div>
-                            <div className="text-slate-400 flex flex-wrap items-center gap-1.5">
-                              <span>{lead.name}</span>
-                              <span>•</span>
-                              <span className="font-mono">{lead.phone || 'Sem celular'}</span>
-                              {lead.sourceVerifiedAt && lead.phone && (
-                                <span
-                                  className="inline-flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-500"
-                                  title={lead.contactValidationMethod || 'Contato comercial validado em fonte pública'}
-                                >
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  Validado
-                                </span>
-                              )}
-                            </div>
+                        <tr key={lead.id} className="hover:bg-slate-50/80">
+                          <td className="px-4 py-3">
+                            <button onClick={() => setSelectedLeadId(lead.id)} className="text-left">
+                              <div className="font-bold text-sm text-slate-900">{lead.company}</div>
+                              <div className="mt-0.5 text-[11px] text-slate-400">
+                                {lead.sourceVerifiedAt ? 'Contato validado' : 'Cadastro manual'}
+                              </div>
+                            </button>
                           </td>
-                          <td className="py-3.5 px-4">
-                            <div className="text-slate-200 flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-rose-400" />
-                              <span>
-                                {lead.neighborhood} — {lead.city}/{lead.state}
-                              </span>
-                            </div>
-                            <div className="text-slate-400">{lead.segment}</div>
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-slate-700">{lead.segment}</div>
+                            <div className="text-[11px] text-slate-400">{lead.neighborhood || lead.city}</div>
                           </td>
-                          <td className="py-3.5 px-4">
-                            <div className="font-medium text-indigo-300">
+                          <td className="px-4 py-3">
+                            <div className="font-mono text-slate-700">{lead.phone}</div>
+                            <div className="text-[10px] font-semibold text-emerald-600">WhatsApp ✓</div>
+                          </td>
+                          <td className="px-4 py-3 max-w-[280px]">
+                            <div className="font-medium text-indigo-700 truncate">
                               {lead.recommendedService || lead.serviceInterest}
                             </div>
-                            {lead.opportunitySummary && (
-                              <div className="mt-1 max-w-[260px] text-[11px] leading-4 text-slate-400">
-                                {lead.opportunitySummary}
-                              </div>
-                            )}
-                            <div className="font-mono text-emerald-400 font-bold">
-                              R$ {lead.estimatedValue.toLocaleString('pt-BR')}
-                            </div>
                           </td>
-                          <td className="py-3.5 px-4">
-                            <span
-                              className={`px-2.5 py-1 rounded-md border font-medium ${stageMeta.badgeClass}`}
+                          <td className="px-4 py-3">
+                            <select
+                              value={lead.stage}
+                              onChange={(event) => void handleMoveStage(lead, event.target.value as KanbanStage)}
+                              className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold ${stageMeta.badgeClass}`}
                             >
-                              {stageMeta.label}
-                            </span>
+                              {KANBAN_STAGES.map((stage) => (
+                                <option key={stage.id} value={stage.id}>{stage.label}</option>
+                              ))}
+                            </select>
                           </td>
-                          <td
-                            className="py-3.5 px-4"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {lead.responsibleId ? (
-                              <span className="font-semibold text-slate-200">
-                                {lead.responsibleName}
-                              </span>
-                            ) : (
-                              <div className="flex flex-col gap-1.5">
-                                {lead.whatsapp && (
-                                  <button
-                                    onClick={() => void handleClaimAndQuickWhatsApp(lead)}
-                                    className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center gap-1 cursor-pointer"
-                                    title="Assumir cliente e abrir o WhatsApp com a apresentação pronta"
-                                  >
-                                    <MessageSquare className="w-3 h-3" />
-                                    <span>ASSUMIR + WHATSAPP</span>
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => handleClaimLead(lead)}
-                                  className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center gap-1 cursor-pointer"
-                                >
-                                  <Hand className="w-3 h-3" />
-                                  <span>SÓ ASSUMIR</span>
-                                </button>
-                              </div>
-                            )}
-                          </td>
-                          <td
-                            className="py-3.5 px-4 text-right"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {lead.responsibleId ? (
-                              <div className="inline-flex flex-wrap justify-end gap-1.5">
-                                {lead.phone && (
-                                  <a
-                                    href={`tel:${lead.phone.replace(/[^\d+]/g, '')}`}
-                                    className="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold inline-flex items-center gap-1.5"
-                                    title="Ligar para o número comercial validado"
-                                  >
-                                    <PhoneCall className="w-3.5 h-3.5" />
-                                    <span>Ligar</span>
-                                  </a>
-                                )}
-                                <button
-                                  onClick={() => setWhatsAppLead(lead)}
-                                  className={`px-2.5 py-1.5 rounded-lg font-semibold inline-flex items-center gap-1.5 cursor-pointer ${
-                                    lead.whatsapp
-                                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                                      : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                                  }`}
-                                >
-                                  <MessageSquare className="w-3.5 h-3.5" />
-                                  <span>{lead.whatsapp ? 'WhatsApp' : 'Roteiro'}</span>
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-[11px] font-medium text-slate-500">
-                                Use “Assumir + WhatsApp” para iniciar em 1 clique
-                              </span>
-                            )}
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => void handleQuickWhatsApp(lead)}
+                                className="rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white"
+                              >
+                                WhatsApp
+                              </button>
+                              <button
+                                onClick={() => setSelectedLeadId(lead.id)}
+                                className="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-700"
+                              >
+                                Ver
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
                     })}
-                    {availableLeads.length === 0 && (
-                      <tr>
-                        <td colSpan={6} className="py-10 px-4 text-center text-slate-500">
-                          Nenhuma oportunidade disponível no momento.
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </div>
@@ -1978,11 +1837,10 @@ export default function App() {
       </div>
 
       <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pt-2 backdrop-blur-xl lg:hidden">
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-3 gap-1">
           {[
-            { id: 'dashboard' as NavTab, label: 'Início', icon: LayoutDashboard },
-            { id: 'kanban' as NavTab, label: 'Funil', icon: Kanban, badge: visibleLeads.length },
-            { id: 'carteira' as NavTab, label: 'Carteira', icon: Award, badge: myPortfolioCount },
+            { id: 'leads' as NavTab, label: 'Clientes', icon: Users, badge: visibleLeads.length },
+            { id: 'kanban' as NavTab, label: 'Funil', icon: Kanban },
             { id: 'agenda' as NavTab, label: 'Agenda', icon: Calendar },
           ].map((item) => {
             const Icon = item.icon;
@@ -1998,25 +1856,13 @@ export default function App() {
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
                 {'badge' in item && item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute right-2 top-1 min-w-4 rounded-full bg-indigo-600 px-1 text-[9px] leading-4 text-white">
-                    {item.badge}
+                  <span className="absolute right-3 top-1 min-w-4 rounded-full bg-indigo-600 px-1 text-[9px] leading-4 text-white">
+                    {item.badge > 99 ? '99+' : item.badge}
                   </span>
                 )}
               </button>
             );
           })}
-          <button
-            type="button"
-            aria-label="Abrir mais opções"
-            aria-expanded={mobileMenuOpen}
-            onClick={() => setMobileMenuOpen(true)}
-            className={`flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[10px] font-semibold ${
-              mobileMenuOpen ? 'bg-indigo-50 text-indigo-700' : 'text-slate-500'
-            }`}
-          >
-            <Menu className="w-5 h-5" />
-            <span>Mais</span>
-          </button>
         </div>
       </nav>
 
