@@ -1,14 +1,11 @@
 import React, { useState } from 'react';
 import {
   AlertCircle,
-  Briefcase,
   ChevronRight,
   Clock,
-  Hand,
   MapPin,
   MessageSquare,
   Phone,
-  UserCheck,
 } from 'lucide-react';
 import { Lead, User, KANBAN_STAGES, KanbanStage } from './crm';
 
@@ -41,7 +38,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   stalledAlertDays,
   onSelectLead,
   onMoveStage,
-  onClaimLead,
+  onClaimLead: _onClaimLead,
   onOpenWhatsApp,
   darkMode: _darkMode,
 }) => {
@@ -78,10 +75,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
     return Math.max(0, Math.floor((Date.now() - changedAt) / 86400000));
   };
 
+  const visibleStages = KANBAN_STAGES.filter((stage) => stage.id !== 'ASSUMIDO');
+
   return (
     <div className="flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory pb-4 min-h-[calc(100dvh-220px)] select-none touch-pan-x">
-      {KANBAN_STAGES.map((stage, index) => {
-        const columnLeads = leads.filter((lead) => lead.stage === stage.id);
+      {visibleStages.map((stage, index) => {
+        const columnLeads = leads.filter((lead) =>
+          stage.id === 'NOVO LEAD'
+            ? lead.stage === 'NOVO LEAD' || lead.stage === 'ASSUMIDO'
+            : lead.stage === stage.id
+        );
         const total = columnLeads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0);
         const theme = COLUMN_THEMES[index % COLUMN_THEMES.length];
         const isOver = dragOverStage === stage.id;
@@ -186,51 +189,27 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       </div>
 
                       <div className="mt-3 pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <div className="min-w-0 flex items-center gap-1.5">
-                          {lead.responsibleId ? (
-                            <>
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white ${
-                                mine ? 'bg-indigo-600' : 'bg-slate-500'
-                              }`}>
-                                {lead.responsibleName?.[0] || '?'}
-                              </div>
-                              <span className="text-[10px] font-medium text-slate-500 truncate max-w-[90px]">
-                                {mine ? 'Minha carteira' : lead.responsibleName}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600">
-                              <Hand className="w-3 h-3" />
-                              Disponível
-                            </span>
-                          )}
+                        <div className="min-w-0 text-[10px] text-slate-400">
+                          {lead.lastContactAt
+                            ? `Último contato ${new Date(lead.lastContactAt).toLocaleDateString('pt-BR')}`
+                            : 'Ainda sem contato'}
                         </div>
 
                         <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
-                          {lead.responsibleId ? (
-                            <button
-                              type="button"
-                              onClick={() => onOpenWhatsApp(lead)}
-                              className="h-7 px-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-semibold flex items-center gap-1"
-                            >
-                              <MessageSquare className="w-3 h-3" />
-                              WhatsApp
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => void onClaimLead(lead)}
-                              className="h-7 px-2 rounded-md bg-[#635bff] hover:bg-indigo-600 text-white text-[10px] font-semibold flex items-center gap-1"
-                            >
-                              <Hand className="w-3 h-3" />
-                              Assumir + WhatsApp
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => onOpenWhatsApp(lead)}
+                            disabled={!lead.whatsapp}
+                            className="h-7 px-2 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-semibold flex items-center gap-1 disabled:bg-slate-300"
+                          >
+                            <MessageSquare className="w-3 h-3" />
+                            WhatsApp
+                          </button>
                           <button
                             type="button"
                             onClick={() => onSelectLead(lead)}
                             className="w-7 h-7 rounded-md border border-slate-200 text-slate-400 hover:text-slate-700 hover:bg-slate-50 flex items-center justify-center"
-                            title="Abrir ficha"
+                            title="Abrir cliente"
                           >
                             <ChevronRight className="w-3.5 h-3.5" />
                           </button>
@@ -239,11 +218,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
                       <div className="mt-2 flex items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
                         <select
-                          value={lead.stage}
+                          value={lead.stage === 'ASSUMIDO' ? 'NOVO LEAD' : lead.stage}
                           onChange={(event) => void onMoveStage(lead, event.target.value as KanbanStage)}
                           className="h-7 flex-1 min-w-0 rounded-md border border-slate-200 bg-slate-50 px-2 text-[10px] font-medium text-slate-600 focus:outline-none focus:border-indigo-400"
                         >
-                          {KANBAN_STAGES.map((item) => (
+                          {visibleStages.map((item) => (
                             <option key={item.id} value={item.id}>
                               {item.label}
                             </option>
