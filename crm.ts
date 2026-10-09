@@ -30,6 +30,7 @@ export interface User {
 
 export type KanbanStage =
   | 'NOVO LEAD'
+  | 'ASSUMIDO'
   | 'CONTATO INICIADO'
   | 'RESPONDEU'
   | 'PROPOSTA'
