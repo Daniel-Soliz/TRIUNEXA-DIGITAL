@@ -527,58 +527,10 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
     }
 
     if (path === '/api/auth/signup' && method === 'POST') {
-      const email = String(body.email || '').trim().toLowerCase();
-      const password = String(body.password || '');
-      const name = String(body.name || '').trim();
-      if (!email || !password) return errorResponse('Informe e-mail e senha.', 400);
-      if (password.length < 8) return errorResponse('A senha deve ter pelo menos 8 caracteres.', 400);
-
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name: name || email.split('@')[0] },
-          emailRedirectTo: getAppUrl(),
-        },
-      });
-      if (error) return errorResponse(error.message, 400);
-
-      if (data.session) {
-        const profile = await currentProfile();
-        if (!profile) {
-          await supabase.auth.signOut();
-          return errorResponse('Conta criada, mas não foi possível carregar o perfil de acesso.', 500);
-        }
-
-        const loginAt = new Date().toISOString();
-        await supabase
-          .from('truinexa_profiles')
-          .update({ last_login_at: loginAt, active_device: 'Cadastro / Navegador' })
-          .eq('id', profile.id);
-
-        await insertLog(
-          profile,
-          null,
-          'LOGIN',
-          'Primeiro acesso automático após cadastro',
-          undefined,
-          undefined,
-          { source: 'signup' }
-        );
-
-        const refreshedProfile = await currentProfile();
-        return jsonResponse({
-          message: 'Conta criada e acesso liberado.',
-          requiresEmailConfirmation: false,
-          user: refreshedProfile || profile,
-          sessionToken: data.session.access_token,
-        });
-      }
-
-      return jsonResponse({
-        message: 'Conta criada e acesso liberado. Confirme seu e-mail para concluir o primeiro acesso.',
-        requiresEmailConfirmation: true,
-      }, 202);
+      return errorResponse(
+        'Novos cadastros estão desativados. A TRUINEXA utiliza um único acesso administrativo.',
+        403
+      );
     }
 
     if (path === '/api/auth/login' && method === 'POST') {
@@ -599,6 +551,10 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       if (profile.status !== 'active') {
         await supabase.auth.signOut();
         return errorResponse('Este acesso está desativado. Fale com o administrador da TRUINEXA.', 403);
+      }
+      if (profile.role !== 'admin') {
+        await supabase.auth.signOut();
+        return errorResponse('A TRUINEXA está configurada para um único acesso administrativo.', 403);
       }
 
       const loginAt = new Date().toISOString();
