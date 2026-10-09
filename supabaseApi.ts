@@ -552,10 +552,6 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
         await supabase.auth.signOut();
         return errorResponse('Este acesso está desativado. Fale com o administrador da TRUINEXA.', 403);
       }
-      if (profile.role !== 'admin') {
-        await supabase.auth.signOut();
-        return errorResponse('A TRUINEXA está configurada para um único acesso administrativo.', 403);
-      }
 
       const loginAt = new Date().toISOString();
       const deviceInfo = String(body.deviceInfo || 'Navegador');
