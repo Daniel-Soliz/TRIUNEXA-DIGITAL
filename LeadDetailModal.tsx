@@ -62,11 +62,11 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   startEditing = false,
   onClose,
   currentUser,
-  users,
+  users: _users,
   services,
   interactions,
   activityLogs,
-  onClaimLead,
+  onClaimLead: _onClaimLead,
   onUpdateLead,
   onAddInteraction,
   onOpenWhatsApp,
@@ -98,16 +98,11 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   const stageMeta = KANBAN_STAGES.find((s) => s.id === lead.stage) || KANBAN_STAGES[0];
   const canDelete = currentUser.role === 'admin' || currentUser.permissions.canDeleteLeads;
   const canContact =
-    Boolean(lead.responsibleId) &&
-    (lead.responsibleId === currentUser.id || currentUser.role === 'admin');
+    currentUser.role === 'admin' || lead.responsibleId === currentUser.id;
 
   const handleSaveEdits = async () => {
     await onUpdateLead(lead.id, formState);
     setEditing(false);
-  };
-
-  const handleClaimLead = async () => {
-    await onClaimLead(lead);
   };
 
   const handleStageSelect = async (newStage: KanbanStage) => {
@@ -168,14 +163,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
               <span className="text-xs font-mono text-slate-400">
                 Entrada: {new Date(lead.createdAt).toLocaleDateString('pt-BR')}
               </span>
-              {!lead.responsibleId && (
-                <button
-                  onClick={handleClaimLead}
-                  className="px-2.5 py-0.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition cursor-pointer"
-                >
-                  ASSUMIR CLIENTE
-                </button>
-              )}
+
             </div>
             <h2 className="text-xl font-display font-bold text-white tracking-tight">
               {lead.company}
@@ -358,31 +346,6 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   </select>
                 </div>
 
-                <div>
-                  <span className="text-slate-500 block mb-1">Responsável</span>
-                  <select
-                    value={lead.responsibleId || ''}
-                    onChange={(e) =>
-                      onUpdateLead(lead.id, {
-                        responsibleId: e.target.value || null,
-                      })
-                    }
-                    disabled={
-                      currentUser.role !== 'admin' &&
-                      !currentUser.permissions.canDistributeLeads &&
-                      lead.responsibleId !== null &&
-                      lead.responsibleId !== currentUser.id
-                    }
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-medium"
-                  >
-                    <option value="">Disponível (Sem responsável)</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
 
                 <div>
                   <span className="text-slate-500 block mb-1">Solução Sugerida</span>
