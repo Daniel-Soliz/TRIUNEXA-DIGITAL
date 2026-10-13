@@ -785,6 +785,7 @@ export default function App() {
   const railNavItems: NavigationItem[] = [
     { id: 'leads', label: 'Clientes', icon: Users, badge: visibleLeads.length },
     { id: 'kanban', label: 'Funil', icon: Kanban },
+    { id: 'atendimento', label: 'Atendimento', icon: MessageSquare },
     {
       id: 'agenda',
       label: 'Agenda',
@@ -793,7 +794,13 @@ export default function App() {
     },
   ];
 
-  const railBottomItems: NavigationItem[] = [];
+  const railBottomItems: NavigationItem[] =
+    currentUser.role === 'admin' || currentUser.permissions.canManageUsers
+      ? [
+          { id: 'equipe', label: 'Equipe', icon: UserCog },
+          { id: 'configuracoes', label: 'Ajustes', icon: Settings },
+        ]
+      : [];
 
   const goToTab = (tab: NavTab) => {
     setResponsibleFilter('all');
