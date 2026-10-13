@@ -97,8 +97,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   const leadActivityLogs = activityLogs.filter((item) => item.leadId === lead.id);
   const stageMeta = KANBAN_STAGES.find((s) => s.id === lead.stage) || KANBAN_STAGES[0];
   const canDelete = currentUser.role === 'admin' || currentUser.permissions.canDeleteLeads;
-  const canContact =
-    currentUser.role === 'admin' || lead.responsibleId === currentUser.id;
+  const canContact = lead.responsibleId === currentUser.id;
 
   const handleSaveEdits = async () => {
     await onUpdateLead(lead.id, formState);
@@ -179,7 +178,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {lead.stage !== 'FECHADO' && (
+            {canContact && lead.stage !== 'FECHADO' && (
               <button
                 onClick={() => onOpenCloseDeal(lead)}
                 className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
@@ -188,7 +187,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                 <span>Fechar Venda</span>
               </button>
             )}
-            {lead.stage !== 'PERDIDO' && (
+            {canContact && lead.stage !== 'PERDIDO' && (
               <button
                 onClick={() => onOpenLostDeal(lead)}
                 className="px-3 py-1.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/40 text-rose-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
@@ -339,8 +338,9 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                   <span className="text-slate-500 block mb-1">Status / Etapa no Funil</span>
                   <select
                     value={lead.stage}
+                    disabled={!canContact}
                     onChange={(e) => handleStageSelect(e.target.value as KanbanStage)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-medium"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white font-medium disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {KANBAN_STAGES.map((s) => (
                       <option key={s.id} value={s.id}>
