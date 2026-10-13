@@ -218,9 +218,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
           : 'Entre com o acesso ADM ou Comercial.';
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center px-5 py-10">
-      <div className="w-full max-w-5xl grid lg:grid-cols-[1.05fr_0.95fr] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
-        <section className="p-8 sm:p-12">
+    <div className="truinexa-login min-h-screen bg-[#0D0D0D] text-[#F0F0F0] flex items-center justify-center px-5 py-10">
+      <div className="w-full max-w-5xl grid lg:grid-cols-[1.05fr_0.95fr] overflow-hidden rounded-[24px] border border-white/[0.06] bg-[#141414] shadow-2xl shadow-black/40">
+        <section className="bg-[#0D0D0D] p-8 sm:p-12">
           <div className="flex items-center gap-3 mb-10">
             <img
               src={`${import.meta.env.BASE_URL}icons/truinexa-192.png`}
@@ -404,17 +404,17 @@ export const LoginView: React.FC<LoginViewProps> = ({
           </div>
         </section>
 
-        <aside className="bg-slate-900 p-8 sm:p-12 text-white flex flex-col justify-between">
+        <aside className="truinexa-login-visual bg-[#141414] p-8 sm:p-12 text-white flex flex-col justify-between">
           <div>
             <div className="text-xs font-semibold tracking-[0.18em] text-slate-400 uppercase">
               Ambiente interno
             </div>
             <h2 className="mt-4 text-3xl font-bold tracking-tight">
-              Um CRM simples para transformar oportunidade em cliente.
+              Prospecção, carteira e vendas em um fluxo claro.
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              Um único acesso controla clientes, funil, WhatsApp, agenda, serviços, projetos e configurações
-              sem separar a operação por vendedor.
+              A TRUINEXA organiza a operação em um caminho simples: novos leads entram na fila compartilhada,
+              cada usuário assume sua carteira e acompanha contatos, funil e agenda no mesmo CRM.
             </p>
           </div>
 
