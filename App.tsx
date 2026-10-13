@@ -1335,20 +1335,19 @@ export default function App() {
 
                   <div className="grid grid-cols-2 gap-2 sm:min-w-[280px]">
                     <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
-                      <div className="text-[10px] uppercase tracking-wider text-slate-400">Disponíveis</div>
-                      <div className="mt-1 text-2xl font-bold">{availableLeads.length}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-slate-400">Fila disponível</div>
+                      <div className="mt-1 flex items-end gap-1">
+                        <span className="text-2xl font-bold">{availableLeads.length}</span>
+                        <span className="pb-1 text-[10px] font-semibold text-slate-400">/ 50</span>
+                      </div>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
-                      <div className="text-[10px] uppercase tracking-wider text-slate-400">Última busca IA</div>
+                      <div className="text-[10px] uppercase tracking-wider text-slate-400">Reposição automática</div>
                       <div className="mt-1 text-xs font-semibold text-emerald-300">
-                        {lastProspectingAt
-                          ? new Intl.DateTimeFormat('pt-BR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            }).format(lastProspectingAt)
-                          : 'Aguardando'}
+                        A cada 5 minutos
+                      </div>
+                      <div className="mt-0.5 text-[9px] text-slate-500">
+                        IA mantém até 50 disponíveis
                       </div>
                     </div>
                   </div>
