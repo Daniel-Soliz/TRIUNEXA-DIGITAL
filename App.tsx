@@ -382,6 +382,16 @@ export default function App() {
     [visibleLeads]
   );
 
+  const lastProspectingAt = useMemo(() => {
+    const researched = crmState?.leads
+      .map((lead) => lead.researchedAt || lead.sourceVerifiedAt)
+      .filter(Boolean)
+      .map((value) => new Date(value as string))
+      .filter((date) => !Number.isNaN(date.getTime()))
+      .sort((a, b) => b.getTime() - a.getTime());
+    return researched?.[0] || null;
+  }, [crmState]);
+
   const portfolioLeads = useMemo(
     () => visibleLeads.filter((lead) => Boolean(lead.responsibleId)),
     [visibleLeads]
@@ -432,9 +442,9 @@ export default function App() {
         actorId: currentUser.id,
         leadData: {
           ...leadData,
-          responsibleId: currentUser.id,
-          responsibleName: currentUser.name,
-          stage: leadData.stage || 'NOVO LEAD',
+          responsibleId: null,
+          responsibleName: 'Disponível',
+          stage: 'NOVO LEAD',
         },
       }),
     });
@@ -783,14 +793,17 @@ export default function App() {
   };
 
   const railNavItems: NavigationItem[] = [
-    { id: 'leads', label: 'Clientes', icon: Users, badge: visibleLeads.length },
+    { id: 'leads', label: 'Fila', icon: Users, badge: availableLeads.length },
+    { id: 'carteira', label: 'Carteira', icon: Award, badge: myPortfolioCount },
     { id: 'kanban', label: 'Funil', icon: Kanban },
-    { id: 'atendimento', label: 'Atendimento', icon: MessageSquare },
+    { id: 'atendimento', label: 'WhatsApp', icon: MessageSquare },
     {
       id: 'agenda',
       label: 'Agenda',
       icon: Calendar,
-      badge: crmState.appointments.filter((a) => a.status === 'pendente').length,
+      badge: crmState.appointments.filter(
+        (a) => a.status === 'pendente' && a.responsibleId === currentUser.id
+      ).length,
     },
   ];
 
@@ -803,16 +816,24 @@ export default function App() {
       : [];
 
   const goToTab = (tab: NavTab) => {
-    setResponsibleFilter('all');
+    if (tab === 'leads') {
+      setResponsibleFilter('unassigned');
+      setQuickFilter('Todos');
+    } else if (tab === 'carteira' || tab === 'kanban') {
+      setResponsibleFilter(currentUser.id);
+    } else {
+      setResponsibleFilter('all');
+    }
     setActiveTab(tab);
     setMobileMenuOpen(false);
   };
 
-  const isLeadWorkspace = activeTab === 'kanban' || activeTab === 'leads';
+  const isLeadWorkspace =
+    activeTab === 'leads' || activeTab === 'carteira' || activeTab === 'kanban';
 
   const activeTitle: Record<NavTab, string> = {
     dashboard: 'Visão geral',
-    leads: 'Clientes',
+    leads: 'Fila de clientes',
     carteira: 'Minha carteira',
     kanban: 'Funil de vendas',
     atendimento: 'Atendimento',
@@ -950,7 +971,7 @@ export default function App() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topo do CRM */}
-        <header className="sticky top-0 z-30 bg-white border-b border-slate-200">
+        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
           <div className="h-16 px-3 sm:px-5 flex items-center gap-3">
             <button
               type="button"
@@ -1006,9 +1027,10 @@ export default function App() {
           {isLeadWorkspace && (
             <div className="px-3 sm:px-5 border-t border-slate-100 bg-white">
               <div className="py-2 flex flex-col sm:flex-row sm:items-center gap-2">
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 overflow-x-auto">
                   {[
-                    { id: 'leads' as NavTab, label: 'Clientes' },
+                    { id: 'leads' as NavTab, label: 'Fila' },
+                    { id: 'carteira' as NavTab, label: 'Carteira' },
                     { id: 'kanban' as NavTab, label: 'Funil' },
                   ].map((tab) => (
                     <button
@@ -1189,7 +1211,7 @@ export default function App() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600">
                   <Clock className="w-3.5 h-3.5 text-indigo-500" />
-                  {visibleLeads.length} oportunidades
+                  {portfolioLeads.length} oportunidades
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600">
                   <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
@@ -1202,7 +1224,7 @@ export default function App() {
               </div>
 
               <KanbanBoard
-                leads={visibleLeads}
+                leads={portfolioLeads}
                 currentUser={currentUser}
                 stalledAlertDays={crmState.config.stalledAlertDays}
                 onSelectLead={(lead) => setSelectedLeadId(lead.id)}
@@ -1214,148 +1236,186 @@ export default function App() {
             </div>
           )}
 
-          {/* CLIENTES — visão única, rápida e sem carteiras */}
+          {/* ===============================================================
+              FILA COMPARTILHADA — TODOS VEEM, PRIMEIRO A ASSUMIR LEVA
+          =============================================================== */}
           {activeTab === 'leads' && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl border border-slate-200 bg-white p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Novos</div>
-                  <div className="mt-1 text-xl font-bold text-sky-600">
-                    {visibleLeads.filter((lead) => lead.stage === 'NOVO LEAD' || lead.stage === 'ASSUMIDO').length}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Em contato</div>
-                  <div className="mt-1 text-xl font-bold text-indigo-600">
-                    {visibleLeads.filter((lead) => ['CONTATO INICIADO','RESPONDEU','PROPOSTA','NEGOCIAÇÃO','SEM RETORNO'].includes(lead.stage)).length}
-                  </div>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-white p-3">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Fechados</div>
-                  <div className="mt-1 text-xl font-bold text-emerald-600">
-                    {visibleLeads.filter((lead) => lead.stage === 'FECHADO').length}
-                  </div>
-                </div>
-              </div>
+            <div className="mx-auto max-w-6xl space-y-4">
+              <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white shadow-xl shadow-slate-200/60 sm:p-6">
+                <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-indigo-500/25 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-cyan-400/15 blur-3xl" />
 
-              <div className="md:hidden space-y-2">
-                {visibleLeads.map((lead) => {
-                  const stageMeta = KANBAN_STAGES.find((stage) => stage.id === lead.stage) || KANBAN_STAGES[0];
-                  return (
-                    <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="font-display font-bold text-slate-900 truncate">{lead.company}</h3>
-                          <p className="mt-0.5 text-xs text-slate-500 truncate">
-                            {lead.segment} • {lead.neighborhood || lead.city}
-                          </p>
-                        </div>
-                        <span className={`shrink-0 px-2 py-1 rounded-md border text-[10px] font-semibold ${stageMeta.badgeClass}`}>
-                          {stageMeta.label}
-                        </span>
-                      </div>
+                <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                  <div className="max-w-2xl">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-indigo-100 backdrop-blur">
+                      <Sparkles className="h-3.5 w-3.5 text-cyan-300" />
+                      IA TRUINEXA • fila compartilhada
+                    </div>
+                    <h2 className="mt-4 text-2xl font-display font-bold tracking-tight sm:text-3xl">
+                      Novos clientes aparecem aqui para toda a equipe.
+                    </h2>
+                    <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
+                      Escolha um lead, confira os dados e toque em <strong className="text-white">Assumir cliente</strong>.
+                      Nesse instante ele sai da fila de todos e entra somente na sua carteira.
+                    </p>
+                  </div>
 
-                      <p className="mt-3 text-xs font-medium text-indigo-700 line-clamp-2">
-                        {lead.recommendedService || lead.serviceInterest}
-                      </p>
-
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => void handleQuickWhatsApp(lead)}
-                          disabled={!lead.whatsapp}
-                          className="rounded-xl bg-emerald-600 px-3 py-3 text-sm font-bold text-white disabled:bg-slate-300"
-                        >
-                          WhatsApp
-                        </button>
-                        <button
-                          onClick={() => setSelectedLeadId(lead.id)}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700"
-                        >
-                          Ver cliente
-                        </button>
+                  <div className="grid grid-cols-2 gap-2 sm:min-w-[280px]">
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+                      <div className="text-[10px] uppercase tracking-wider text-slate-400">Disponíveis</div>
+                      <div className="mt-1 text-2xl font-bold">{availableLeads.length}</div>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/10 p-3 backdrop-blur">
+                      <div className="text-[10px] uppercase tracking-wider text-slate-400">Última busca IA</div>
+                      <div className="mt-1 text-xs font-semibold text-emerald-300">
+                        {lastProspectingAt
+                          ? new Intl.DateTimeFormat('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }).format(lastProspectingAt)
+                          : 'Aguardando'}
                       </div>
                     </div>
-                  );
-                })}
-
-                {visibleLeads.length === 0 && (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
-                    Nenhum cliente encontrado.
                   </div>
-                )}
+                </div>
+              </section>
+
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <button
+                  type="button"
+                  onClick={() => goToTab('carteira')}
+                  className="rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Minha carteira</div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-xl font-bold text-slate-900">{myPortfolioCount}</span>
+                    <Award className="h-4 w-4 text-indigo-500" />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToTab('kanban')}
+                  className="rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Funil</div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-xl font-bold text-slate-900">{portfolioLeads.length}</span>
+                    <Kanban className="h-4 w-4 text-violet-500" />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToTab('atendimento')}
+                  className="rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">WhatsApp</div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-sm font-bold text-emerald-600">Atender</span>
+                    <MessageSquare className="h-4 w-4 text-emerald-500" />
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => goToTab('agenda')}
+                  className="rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Agenda</div>
+                  <div className="mt-1 flex items-end justify-between">
+                    <span className="text-xl font-bold text-slate-900">{portfolioPendingFollowUps}</span>
+                    <Calendar className="h-4 w-4 text-sky-500" />
+                  </div>
+                </button>
               </div>
 
-              <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Empresa</th>
-                      <th className="px-4 py-3">Segmento / Bairro</th>
-                      <th className="px-4 py-3">WhatsApp</th>
-                      <th className="px-4 py-3">Solução sugerida</th>
-                      <th className="px-4 py-3">Etapa</th>
-                      <th className="px-4 py-3 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {visibleLeads.map((lead) => {
-                      const stageMeta = KANBAN_STAGES.find((stage) => stage.id === lead.stage) || KANBAN_STAGES[0];
-                      return (
-                        <tr key={lead.id} className="hover:bg-slate-50/80">
-                          <td className="px-4 py-3">
-                            <button onClick={() => setSelectedLeadId(lead.id)} className="text-left">
-                              <div className="font-bold text-sm text-slate-900">{lead.company}</div>
-                              <div className="mt-0.5 text-[11px] text-slate-400">
-                                {lead.sourceVerifiedAt ? 'Contato validado' : 'Cadastro manual'}
-                              </div>
-                            </button>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-slate-700">{lead.segment}</div>
-                            <div className="text-[11px] text-slate-400">{lead.neighborhood || lead.city}</div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="font-mono text-slate-700">{lead.phone}</div>
-                            <div className="text-[10px] font-semibold text-emerald-600">WhatsApp ✓</div>
-                          </td>
-                          <td className="px-4 py-3 max-w-[280px]">
-                            <div className="font-medium text-indigo-700 truncate">
-                              {lead.recommendedService || lead.serviceInterest}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <select
-                              value={lead.stage}
-                              onChange={(event) => void handleMoveStage(lead, event.target.value as KanbanStage)}
-                              className={`rounded-lg border px-2 py-1.5 text-[11px] font-semibold ${stageMeta.badgeClass}`}
-                            >
-                              {KANBAN_STAGES.map((stage) => (
-                                <option key={stage.id} value={stage.id}>{stage.label}</option>
-                              ))}
-                            </select>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => void handleQuickWhatsApp(lead)}
-                                className="rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white"
-                              >
-                                WhatsApp
-                              </button>
-                              <button
-                                onClick={() => setSelectedLeadId(lead.id)}
-                                className="rounded-lg border border-slate-200 px-3 py-2 font-semibold text-slate-700"
-                              >
-                                Ver
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {availableLeads.map((lead) => (
+                  <article
+                    key={lead.id}
+                    className="group relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-lg"
+                  >
+                    <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-cyan-400 opacity-70" />
+
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex rounded-full bg-emerald-50 px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-emerald-700">
+                            Disponível
+                          </span>
+                          {lead.sourceVerifiedAt && (
+                            <span className="inline-flex rounded-full bg-sky-50 px-2 py-1 text-[9px] font-semibold text-sky-700">
+                              Validado
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="mt-3 truncate text-base font-display font-bold text-slate-950">
+                          {lead.company}
+                        </h3>
+                        <p className="mt-1 truncate text-xs text-slate-500">
+                          {lead.segment} • {lead.neighborhood || lead.city}
+                        </p>
+                      </div>
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-950 text-white">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 rounded-2xl bg-slate-50 p-3">
+                      <div className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">
+                        Oportunidade detectada
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs font-medium leading-5 text-slate-700">
+                        {lead.opportunitySummary ||
+                          lead.opportunityReason ||
+                          lead.recommendedService ||
+                          lead.serviceInterest}
+                      </p>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between gap-3 text-[11px]">
+                      <span className="truncate text-slate-500">
+                        {lead.phone || 'Telefone em validação'}
+                      </span>
+                      <span className="shrink-0 font-semibold text-indigo-600">
+                        {lead.recommendedService || lead.serviceInterest}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleClaimLead(lead)}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-600 active:scale-[0.99]"
+                      >
+                        <Hand className="h-4 w-4" />
+                        Assumir cliente
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedLeadId(lead.id)}
+                        className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
+                        aria-label="Ver detalhes"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
+
+              {availableLeads.length === 0 && (
+                <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-10 text-center">
+                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-indigo-50 text-indigo-600">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 font-display font-bold text-slate-900">Fila limpa por enquanto</h3>
+                  <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+                    A IA de prospecção continua procurando empresas novas. Quando um lead validado entrar,
+                    ele aparecerá aqui para todos os usuários ao mesmo tempo.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -1830,10 +1890,12 @@ export default function App() {
       </div>
 
       <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pt-2 backdrop-blur-xl lg:hidden">
-        <div className="grid grid-cols-3 gap-1">
+        <div className="grid grid-cols-5 gap-0.5">
           {[
-            { id: 'leads' as NavTab, label: 'Clientes', icon: Users, badge: visibleLeads.length },
+            { id: 'leads' as NavTab, label: 'Fila', icon: Users, badge: availableLeads.length },
+            { id: 'carteira' as NavTab, label: 'Carteira', icon: Award, badge: myPortfolioCount },
             { id: 'kanban' as NavTab, label: 'Funil', icon: Kanban },
+            { id: 'atendimento' as NavTab, label: 'WhatsApp', icon: MessageSquare },
             { id: 'agenda' as NavTab, label: 'Agenda', icon: Calendar },
           ].map((item) => {
             const Icon = item.icon;
