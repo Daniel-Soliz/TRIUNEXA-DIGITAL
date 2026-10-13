@@ -147,3 +147,372 @@ textarea:focus-visible {
     letter-spacing: -0.01em;
   }
 }
+
+
+/* TRUINEXA CRM DARK FOUNDATION */
+:root {
+  --trx-bg: #0D0D0D;
+  --trx-surface: #141414;
+  --trx-elevated: #1E1E1E;
+  --trx-hover: #262626;
+  --trx-border: rgba(255,255,255,0.06);
+  --trx-border-hover: rgba(255,255,255,0.12);
+  --trx-text: #F0F0F0;
+  --trx-secondary: #A0A0A0;
+  --trx-muted: #666666;
+  --trx-accent: #6366F1;
+  --trx-accent-hover: #818CF8;
+  --trx-success: #22C55E;
+  --trx-warning: #F59E0B;
+  --trx-error: #EF4444;
+  --trx-info: #3B82F6;
+}
+
+body {
+  background: var(--trx-bg);
+  color: var(--trx-text);
+}
+
+.truinexa-app,
+.truinexa-login {
+  color-scheme: dark;
+}
+
+/* Core surfaces */
+.truinexa-app .bg-white,
+.truinexa-login .bg-white {
+  background-color: var(--trx-surface) !important;
+}
+
+.truinexa-app .bg-slate-50,
+.truinexa-login .bg-slate-50 {
+  background-color: var(--trx-elevated) !important;
+}
+
+.truinexa-app .bg-slate-100,
+.truinexa-login .bg-slate-100 {
+  background-color: var(--trx-hover) !important;
+}
+
+.truinexa-app .bg-slate-900,
+.truinexa-login .bg-slate-900 {
+  background-color: var(--trx-surface) !important;
+}
+
+.truinexa-app .bg-slate-950,
+.truinexa-login .bg-slate-950 {
+  background-color: var(--trx-bg) !important;
+}
+
+/* Neutral text mapping */
+.truinexa-app .text-slate-950,
+.truinexa-app .text-slate-900,
+.truinexa-login .text-slate-950,
+.truinexa-login .text-slate-900 {
+  color: var(--trx-text) !important;
+}
+
+.truinexa-app .text-slate-800,
+.truinexa-app .text-slate-700,
+.truinexa-app .text-slate-600,
+.truinexa-login .text-slate-800,
+.truinexa-login .text-slate-700,
+.truinexa-login .text-slate-600 {
+  color: #C7C7C7 !important;
+}
+
+.truinexa-app .text-slate-500,
+.truinexa-app .text-slate-400,
+.truinexa-login .text-slate-500,
+.truinexa-login .text-slate-400 {
+  color: var(--trx-secondary) !important;
+}
+
+.truinexa-app .text-slate-300,
+.truinexa-login .text-slate-300 {
+  color: #B8B8B8 !important;
+}
+
+/* Borders */
+.truinexa-app .border-slate-100,
+.truinexa-app .border-slate-200,
+.truinexa-app .border-slate-300,
+.truinexa-app .border-slate-800,
+.truinexa-login .border-slate-100,
+.truinexa-login .border-slate-200,
+.truinexa-login .border-slate-300,
+.truinexa-login .border-slate-800 {
+  border-color: var(--trx-border) !important;
+}
+
+/* Semantic low-opacity badges */
+.truinexa-app .bg-emerald-50,
+.truinexa-login .bg-emerald-50 {
+  background-color: rgba(34,197,94,0.10) !important;
+}
+.truinexa-app .text-emerald-700,
+.truinexa-login .text-emerald-700 {
+  color: var(--trx-success) !important;
+}
+
+.truinexa-app .bg-rose-50,
+.truinexa-login .bg-rose-50 {
+  background-color: rgba(239,68,68,0.10) !important;
+}
+.truinexa-app .text-rose-700,
+.truinexa-login .text-rose-700 {
+  color: var(--trx-error) !important;
+}
+
+.truinexa-app .bg-indigo-50,
+.truinexa-login .bg-indigo-50 {
+  background-color: rgba(99,102,241,0.12) !important;
+}
+.truinexa-app .text-indigo-700,
+.truinexa-login .text-indigo-700 {
+  color: var(--trx-accent-hover) !important;
+}
+
+.truinexa-app .bg-sky-50,
+.truinexa-login .bg-sky-50 {
+  background-color: rgba(59,130,246,0.10) !important;
+}
+.truinexa-app .text-sky-700,
+.truinexa-login .text-sky-700 {
+  color: var(--trx-info) !important;
+}
+
+.truinexa-app .bg-amber-50,
+.truinexa-login .bg-amber-50 {
+  background-color: rgba(245,158,11,0.10) !important;
+}
+.truinexa-app .text-amber-700,
+.truinexa-login .text-amber-700 {
+  color: var(--trx-warning) !important;
+}
+
+/* Form controls */
+.truinexa-app input,
+.truinexa-app select,
+.truinexa-app textarea,
+.truinexa-login input,
+.truinexa-login select,
+.truinexa-login textarea {
+  background: var(--trx-surface) !important;
+  border-color: var(--trx-border-hover) !important;
+  color: var(--trx-text) !important;
+  border-radius: 8px;
+  min-height: 40px;
+  transition: border-color 200ms ease, background-color 200ms ease, box-shadow 200ms ease;
+}
+
+.truinexa-app input::placeholder,
+.truinexa-app textarea::placeholder,
+.truinexa-login input::placeholder,
+.truinexa-login textarea::placeholder {
+  color: var(--trx-muted) !important;
+}
+
+.truinexa-app input:focus,
+.truinexa-app select:focus,
+.truinexa-app textarea:focus,
+.truinexa-login input:focus,
+.truinexa-login select:focus,
+.truinexa-login textarea:focus {
+  border-color: var(--trx-accent) !important;
+  background: var(--trx-elevated) !important;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.24);
+  outline: none !important;
+}
+
+/* Buttons and clickable surfaces */
+.truinexa-app button,
+.truinexa-app a,
+.truinexa-login button,
+.truinexa-login a {
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease,
+    transform 200ms ease, box-shadow 200ms ease;
+}
+
+.truinexa-app button:active,
+.truinexa-login button:active {
+  transform: scale(0.985);
+}
+
+.truinexa-app .bg-indigo-600,
+.truinexa-login .bg-indigo-600 {
+  background-color: var(--trx-accent) !important;
+}
+
+.truinexa-app .bg-indigo-600:hover,
+.truinexa-login .bg-indigo-600:hover {
+  background-color: var(--trx-accent-hover) !important;
+}
+
+/* CRM cards */
+.truinexa-app main .bg-white.rounded-xl,
+.truinexa-app main .bg-white.rounded-2xl,
+.truinexa-app main .bg-white.rounded-3xl,
+.truinexa-settings > .rounded-2xl {
+  background: var(--trx-surface) !important;
+  border-color: var(--trx-border) !important;
+  box-shadow: none !important;
+  transition: background-color 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+
+.truinexa-app main .bg-white.rounded-xl:hover,
+.truinexa-app main .bg-white.rounded-2xl:hover,
+.truinexa-app main .bg-white.rounded-3xl:hover {
+  background: var(--trx-elevated) !important;
+  border-color: var(--trx-border-hover) !important;
+}
+
+/* Data emphasis */
+.truinexa-app .font-mono,
+.truinexa-app .tabular-nums,
+.truinexa-settings code {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tables */
+.truinexa-app table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: transparent;
+}
+
+.truinexa-app thead {
+  background: #0F0F0F;
+}
+
+.truinexa-app thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  color: var(--trx-muted) !important;
+  font-size: 11px !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  border-bottom: 1px solid var(--trx-border) !important;
+}
+
+.truinexa-app tbody td {
+  border-bottom: 1px solid rgba(255,255,255,0.04) !important;
+}
+
+.truinexa-app tbody tr {
+  transition: background-color 180ms ease;
+}
+
+.truinexa-app tbody tr:hover {
+  background: var(--trx-surface) !important;
+}
+
+/* Settings */
+.truinexa-settings {
+  max-width: 1180px;
+  margin-inline: auto;
+}
+
+.truinexa-settings > div {
+  border-color: var(--trx-border) !important;
+}
+
+.truinexa-settings h2,
+.truinexa-settings h3 {
+  color: var(--trx-text);
+}
+
+.truinexa-settings p {
+  color: var(--trx-secondary);
+}
+
+/* Login */
+.truinexa-login {
+  background:
+    radial-gradient(circle at 78% 20%, rgba(99,102,241,0.16), transparent 30%),
+    radial-gradient(circle at 72% 78%, rgba(59,130,246,0.08), transparent 28%),
+    var(--trx-bg);
+}
+
+.truinexa-login-visual {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(145deg, rgba(99,102,241,0.08), transparent 45%),
+    #141414 !important;
+}
+
+.truinexa-login-visual::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: .45;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(to bottom, black, transparent 82%);
+}
+
+.truinexa-login form button[type="submit"] {
+  min-height: 48px;
+  border-radius: 8px;
+  background: var(--trx-accent) !important;
+}
+
+.truinexa-login form button[type="submit"]:hover {
+  background: var(--trx-accent-hover) !important;
+}
+
+/* Mobile navigation */
+.truinexa-app .mobile-bottom-nav {
+  box-shadow: 0 -12px 30px rgba(0,0,0,0.34);
+}
+
+.truinexa-app .mobile-bottom-nav button {
+  min-height: 48px;
+}
+
+.truinexa-app .mobile-bottom-nav button:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+/* Scrollbars */
+.truinexa-app ::-webkit-scrollbar-thumb,
+.truinexa-login ::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.14);
+}
+
+.truinexa-app ::-webkit-scrollbar-thumb:hover,
+.truinexa-login ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.24);
+}
+
+@media (max-width: 1023px) {
+  .truinexa-login {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .truinexa-login > div {
+    min-height: 100dvh;
+    border-radius: 0;
+    border: 0;
+  }
+
+  .truinexa-login aside {
+    display: none;
+  }
+
+  .truinexa-login section {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 28px 22px;
+  }
+}
