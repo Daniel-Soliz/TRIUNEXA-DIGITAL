@@ -64,6 +64,7 @@ import {
 } from './ModulesView';
 import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supabaseApi';
 import { InstallAppButton } from './InstallAppButton';
+import { TeamChat } from './TeamChat';
 
 type NavTab =
   | 'dashboard'
@@ -72,6 +73,7 @@ type NavTab =
   | 'kanban'
   | 'atendimento'
   | 'agenda'
+  | 'chat'
   | 'tarefas'
   | 'servicos'
   | 'projetos'
@@ -878,6 +880,7 @@ export default function App() {
         (a) => a.status === 'pendente' && a.responsibleId === currentUser.id
       ).length,
     },
+    { id: 'chat', label: 'Chat', icon: MessageSquare },
   ];
 
   const railBottomItems: NavigationItem[] =
@@ -911,6 +914,7 @@ export default function App() {
     kanban: 'Funil de vendas',
     atendimento: 'Atendimento',
     agenda: 'Agenda',
+    chat: 'Chat da equipe',
     tarefas: 'Tarefas',
     servicos: 'Serviços',
     projetos: 'Projetos',
@@ -1985,6 +1989,13 @@ export default function App() {
           )}
 
           {/* =================================================================
+              CHAT INTERNO DA EQUIPE
+          ================================================================= */}
+          {activeTab === 'chat' && (
+            <TeamChat currentUser={currentUser} users={crmState.users} />
+          )}
+
+          {/* =================================================================
               VIEW 11 & 12: EQUIPE & CONFIGURAÇÕES ADMINISTRATIVAS
           ================================================================= */}
           {(activeTab === 'equipe' || activeTab === 'configuracoes') && (
@@ -2000,12 +2011,13 @@ export default function App() {
       </div>
 
       <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.06] bg-[#0D0D0D]/95 px-2 pt-2 backdrop-blur-xl lg:hidden">
-        <div className="grid grid-cols-4 gap-0.5">
+        <div className="grid grid-cols-5 gap-0.5">
           {[
             { id: 'leads' as NavTab, label: 'Fila', icon: Users, badge: availableLeads.length },
             { id: 'carteira' as NavTab, label: 'Carteira', icon: Award, badge: myPortfolioCount },
             { id: 'kanban' as NavTab, label: 'Funil', icon: Kanban },
             { id: 'agenda' as NavTab, label: 'Agenda', icon: Calendar },
+            { id: 'chat' as NavTab, label: 'Chat', icon: MessageSquare },
           ].map((item) => {
             const Icon = item.icon;
             const active = activeTab === item.id;
