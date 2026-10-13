@@ -1376,17 +1376,11 @@ export const TeamAndSettingsModule: React.FC<{
   } | null>(null);
   const isAdmin = currentUser.role === 'admin';
 
-  const randomPassword = (prefix: string) => {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*_';
-    const bytes = crypto.getRandomValues(new Uint8Array(14));
-    return prefix + Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
-  };
-
   const provisionStandardAccess = async () => {
     const adminEmail = 'adm.truinexa@gmail.com';
     const commercialEmail = 'comercial.truinexa@gmail.com';
-    const adminPassword = randomPassword('TRX-ADM#');
-    const commercialPassword = randomPassword('TRX-COM#');
+    const adminPassword = 'admin123';
+    const commercialPassword = 'comercial123';
 
     setProvisioningAccess(true);
     setAccessProvisionError(null);
@@ -1474,7 +1468,7 @@ export const TeamAndSettingsModule: React.FC<{
             onClick={() => void provisionStandardAccess()}
             className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
           >
-            {provisioningAccess ? 'Criando acessos...' : 'Criar/Redefinir ADM + Comercial'}
+            {provisioningAccess ? 'Aplicando senhas...' : 'Aplicar senhas ADM + Comercial'}
           </button>
         </div>
 
