@@ -63,7 +63,6 @@ import {
 } from './ModulesView';
 import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supabaseApi';
 import { InstallAppButton } from './InstallAppButton';
-import { WhatsAppInbox } from './WhatsAppInbox';
 
 type NavTab =
   | 'dashboard'
@@ -542,21 +541,49 @@ export default function App() {
     });
   };
 
-  const handleQuickWhatsApp = (lead: Lead) => {
-    setWhatsAppLead(lead);
-  };
+  const openRealWhatsApp = (lead: Lead) => {
+    const rawPhone = String(lead.whatsapp || lead.phone || '').replace(/\D/g, '');
+    const phone = rawPhone.startsWith('55') ? rawPhone : `55${rawPhone}`;
 
-  const handleClaimAndQuickWhatsApp = async (lead: Lead) => {
-    if (!lead.whatsapp) {
-      window.alert('Este lead não possui WhatsApp confirmado.');
+    if (!/^55\d{10,11}$/.test(phone)) {
+      window.alert('Este cliente não possui um WhatsApp válido.');
       return;
     }
 
-    const claimedLead = await claimLeadAtomically(lead);
-    if (!claimedLead || !currentUser) return;
+    const message =
+      lead.whatsappMessage?.trim() ||
+      `Olá, tudo bem? Sou ${crmState?.config.senderName || 'Daniel Soliz'}, da ${crmState?.config.brandName || 'DS Digital'}. Encontrei a ${lead.company} e identifiquei uma oportunidade para melhorar a presença digital e facilitar o contato com novos clientes. Posso te mostrar uma ideia rápida?`;
 
-    setResponsibleFilter(currentUser.id);
-    setWhatsAppLead(claimedLead);
+    window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  };
+
+  const handleDirectWhatsApp = async (lead: Lead) => {
+    if (!currentUser) return;
+
+    let targetLead = lead;
+
+    if (!lead.responsibleId) {
+      const claimedLead = await claimLeadAtomically(lead);
+      if (!claimedLead) return;
+      targetLead = claimedLead;
+      setResponsibleFilter(currentUser.id);
+    } else if (
+      lead.responsibleId !== currentUser.id &&
+      currentUser.role !== 'admin'
+    ) {
+      window.alert('Este cliente já pertence à carteira de outro usuário.');
+      return;
+    }
+
+    openRealWhatsApp(targetLead);
+  };
+
+  const handleQuickWhatsApp = (lead: Lead) => {
+    void handleDirectWhatsApp(lead);
+  };
+
+  const handleClaimAndQuickWhatsApp = async (lead: Lead) => {
+    await handleDirectWhatsApp(lead);
   };
 
   const handleStartWhatsAppContact = async (leadId: string, message: string) => {
@@ -796,7 +823,6 @@ export default function App() {
     { id: 'leads', label: 'Fila', icon: Users, badge: availableLeads.length },
     { id: 'carteira', label: 'Carteira', icon: Award, badge: myPortfolioCount },
     { id: 'kanban', label: 'Funil', icon: Kanban },
-    { id: 'atendimento', label: 'WhatsApp', icon: MessageSquare },
     {
       id: 'agenda',
       label: 'Agenda',
@@ -1230,7 +1256,7 @@ export default function App() {
                 onSelectLead={(lead) => setSelectedLeadId(lead.id)}
                 onMoveStage={handleMoveStage}
                 onClaimLead={handleClaimAndQuickWhatsApp}
-                onOpenWhatsApp={(lead) => void handleQuickWhatsApp(lead)}
+                onOpenWhatsApp={(lead) => void handleDirectWhatsApp(lead)}
                 darkMode={darkMode}
               />
             </div>
@@ -1282,7 +1308,7 @@ export default function App() {
                 </div>
               </section>
 
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 <button
                   type="button"
                   onClick={() => goToTab('carteira')}
@@ -1303,17 +1329,6 @@ export default function App() {
                   <div className="mt-1 flex items-end justify-between">
                     <span className="text-xl font-bold text-slate-900">{myPortfolioCount}</span>
                     <Kanban className="h-4 w-4 text-violet-500" />
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => goToTab('atendimento')}
-                  className="rounded-2xl border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">WhatsApp</div>
-                  <div className="mt-1 flex items-end justify-between">
-                    <span className="text-sm font-bold text-emerald-600">Atender</span>
-                    <MessageSquare className="h-4 w-4 text-emerald-500" />
                   </div>
                 </button>
                 <button
@@ -1382,24 +1397,33 @@ export default function App() {
                       </span>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                    <div className="mt-4 grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => void handleClaimLead(lead)}
-                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-indigo-600 active:scale-[0.99]"
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-950 px-3 text-xs font-bold text-white shadow-sm transition hover:bg-indigo-600 active:scale-[0.99] sm:text-sm"
                       >
                         <Hand className="h-4 w-4" />
-                        Assumir cliente
+                        Assumir
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSelectedLeadId(lead.id)}
-                        className="grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50"
-                        aria-label="Ver detalhes"
+                        onClick={() => void handleDirectWhatsApp(lead)}
+                        disabled={!lead.whatsapp && !lead.phone}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-500 active:scale-[0.99] disabled:bg-slate-300 sm:text-sm"
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <MessageSquare className="h-4 w-4" />
+                        WhatsApp
                       </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLeadId(lead.id)}
+                      className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+                    >
+                      Ver detalhes
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
                   </article>
                 ))}
               </div>
@@ -1518,11 +1542,11 @@ export default function App() {
                         )}
                         {lead.whatsapp ? (
                           <button
-                            onClick={() => void handleQuickWhatsApp(lead)}
+                            onClick={() => void handleDirectWhatsApp(lead)}
                             className="rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white"
-                            title="Abrir WhatsApp com apresentação, portfólio e cartaz prontos"
+                            title="Abrir conversa no WhatsApp"
                           >
-                            Preparar WhatsApp
+                            WhatsApp
                           </button>
                         ) : (
                           <button
@@ -1674,7 +1698,7 @@ export default function App() {
                             <div className="flex flex-wrap justify-end gap-1.5">
                               {lead.whatsapp && (
                                 <button
-                                  onClick={() => void handleQuickWhatsApp(lead)}
+                                  onClick={() => void handleDirectWhatsApp(lead)}
                                   className="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                                 >
                                   <MessageSquare className="w-3.5 h-3.5" />
@@ -1737,17 +1761,6 @@ export default function App() {
                 </table>
               </div>
             </div>
-          )}
-
-          {/* =================================================================
-              VIEW 4: ATENDIMENTO & WHATSAPP + FUNIL AUTOMATIZADO
-          ================================================================= */}
-          {activeTab === 'atendimento' && (
-            <WhatsAppInbox
-              state={crmState}
-              currentUser={currentUser}
-              onSelectLead={(leadId) => setSelectedLeadId(leadId)}
-            />
           )}
 
           {/* =================================================================
@@ -1890,12 +1903,11 @@ export default function App() {
       </div>
 
       <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pt-2 backdrop-blur-xl lg:hidden">
-        <div className="grid grid-cols-5 gap-0.5">
+        <div className="grid grid-cols-4 gap-0.5">
           {[
             { id: 'leads' as NavTab, label: 'Fila', icon: Users, badge: availableLeads.length },
             { id: 'carteira' as NavTab, label: 'Carteira', icon: Award, badge: myPortfolioCount },
             { id: 'kanban' as NavTab, label: 'Funil', icon: Kanban },
-            { id: 'atendimento' as NavTab, label: 'WhatsApp', icon: MessageSquare },
             { id: 'agenda' as NavTab, label: 'Agenda', icon: Calendar },
           ].map((item) => {
             const Icon = item.icon;
@@ -1939,7 +1951,7 @@ export default function App() {
         onClaimLead={handleClaimLead}
         onUpdateLead={handleUpdateLead}
         onAddInteraction={handleAddInteraction}
-        onOpenWhatsApp={(lead) => setWhatsAppLead(lead)}
+        onOpenWhatsApp={(lead) => void handleDirectWhatsApp(lead)}
         onOpenAppointment={(lead) => setAppointmentLead(lead)}
         onOpenCloseDeal={(lead) => setCloseDealLead(lead)}
         onOpenLostDeal={(lead) => setLostDealLead(lead)}
