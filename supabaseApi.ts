@@ -622,10 +622,15 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
     if (path === '/api/leads' && method === 'POST') {
       const leadData: Partial<Lead> = body.leadData || {};
       const now = new Date().toISOString();
-      const responsibleId =
-        leadData.responsibleId ?? (profile.role === 'admin' ? null : profile.id);
+      // Todo novo lead entra primeiro na fila compartilhada.
+      // A carteira só é definida pelo fluxo atômico "Assumir cliente".
+      const responsibleId = leadData.responsibleId ?? null;
       const responsibleName =
-        responsibleId === profile.id ? profile.name : (leadData.responsibleName || 'Disponível');
+        responsibleId === profile.id
+          ? profile.name
+          : responsibleId
+            ? (leadData.responsibleName || 'Responsável')
+            : 'Disponível';
 
       const row = {
         name: leadData.name || 'Contato comercial',
