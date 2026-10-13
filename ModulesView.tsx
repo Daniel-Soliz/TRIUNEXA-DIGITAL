@@ -1512,18 +1512,6 @@ export const TeamAndSettingsModule: React.FC<{
           As senhas são enviadas diretamente para o backend autenticado e não ficam salvas no código público.
         </div>
 
-        <div className="hidden">
-          <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-300">ADM</div>
-            <div className="mt-1 text-xs font-semibold text-white">adm.truinexa@gmail.com</div>
-            <p className="mt-1 text-[10px] text-slate-500">Acesso completo e configurações.</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Comercial</div>
-            <div className="mt-1 text-xs font-semibold text-white">comercial.truinexa@gmail.com</div>
-          </div>
-        </div>
-
         {provisionedCredentials && (
           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
             <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-300">
