@@ -102,7 +102,7 @@ export default function App() {
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('leads');
-  const [darkMode] = useState(false);
+  const [darkMode] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [realtimePulse, setRealtimePulse] = useState<string | null>(null);
   const [bootError, setBootError] = useState<string | null>(null);
@@ -327,7 +327,7 @@ export default function App() {
       if (quickFilter !== 'Todos') {
         switch (quickFilter) {
           case 'Novos':
-            if (lead.stage !== 'NOVO LEAD' && lead.stage !== 'ASSUMIDO') return false;
+            if (lead.stage !== 'NOVO LEAD') return false;
             break;
           case 'Contato':
             if (lead.stage !== 'CONTATO INICIADO') return false;
@@ -755,7 +755,7 @@ export default function App() {
     }
 
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0D0D0D] text-[#F0F0F0] flex items-center justify-center">
         <div className="flex items-center gap-3 text-sm text-slate-500">
           <div className="w-5 h-5 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin" />
           <span>Carregando TRUINEXA DIGITAL CRM...</span>
@@ -780,12 +780,11 @@ export default function App() {
     (l) => l.createdAt.slice(0, 10) === todayStr || l.stage === 'NOVO LEAD'
   ).length;
   const awaitingContact = crmState.leads.filter(
-    (l) => l.stage === 'NOVO LEAD' || l.stage === 'ASSUMIDO'
+    (l) => l.stage === 'NOVO LEAD'
   ).length;
   const contactedCount = crmState.leads.filter(
     (l) =>
       l.stage !== 'NOVO LEAD' &&
-      l.stage !== 'ASSUMIDO' &&
       l.stage !== 'PERDIDO'
   ).length;
   const proposalsSentCount = crmState.leads.filter(
@@ -887,7 +886,7 @@ export default function App() {
 
   return (
     <div
-      className="min-h-[100dvh] flex bg-[#f5f7fb] text-slate-900"
+      className="truinexa-app min-h-[100dvh] flex bg-[#0D0D0D] text-[#F0F0F0]"
     >
       {mobileMenuOpen && (
         <button
@@ -1009,7 +1008,7 @@ export default function App() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topo do CRM */}
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+        <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0D0D0D]/95 backdrop-blur-xl">
           <div className="h-16 px-3 sm:px-5 flex items-center gap-3">
             <button
               type="button"
@@ -1122,7 +1121,7 @@ export default function App() {
         </header>
 
         {/* Active View Body */}
-        <main className="flex-1 p-2.5 sm:p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] lg:pb-4 overflow-x-hidden bg-[#f5f7fb]">
+        <main className="flex-1 p-2.5 sm:p-4 pb-[calc(5.75rem+env(safe-area-inset-bottom))] lg:pb-4 overflow-x-hidden bg-[#0D0D0D]">
           {/* =================================================================
               INÍCIO SIMPLES — foco no que a equipe precisa fazer agora
           ================================================================= */}
@@ -1914,7 +1913,7 @@ export default function App() {
         </main>
       </div>
 
-      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 px-2 pt-2 backdrop-blur-xl lg:hidden">
+      <nav className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.06] bg-[#0D0D0D]/95 px-2 pt-2 backdrop-blur-xl lg:hidden">
         <div className="grid grid-cols-4 gap-0.5">
           {[
             { id: 'leads' as NavTab, label: 'Fila', icon: Users, badge: availableLeads.length },
