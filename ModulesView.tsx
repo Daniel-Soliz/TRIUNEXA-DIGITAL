@@ -1451,7 +1451,7 @@ export const TeamAndSettingsModule: React.FC<{
   }
 
   return (
-    <div className="space-y-6">
+    <div className="truinexa-settings space-y-6">
       <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-slate-900 p-5">
         <div>
           <span className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold">
