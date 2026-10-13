@@ -1366,61 +1366,58 @@ export const TeamAndSettingsModule: React.FC<{
   const [recoverySending, setRecoverySending] = useState<string | null>(null);
   const [recoverySent, setRecoverySent] = useState<string | null>(null);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
-  const [provisioningAccess, setProvisioningAccess] = useState(false);
-  const [adminAccessPassword, setAdminAccessPassword] = useState('');
-  const [commercialAccessPassword, setCommercialAccessPassword] = useState('');
-  const [accessProvisionError, setAccessProvisionError] = useState<string | null>(null);
-  const [provisionedCredentials, setProvisionedCredentials] = useState<{
-    adminEmail: string;
-    adminPassword: string;
-    commercialEmail: string;
-    commercialPassword: string;
-  } | null>(null);
+  const [passwordDrafts, setPasswordDrafts] = useState<Record<string, string>>({});
+  const [passwordSaving, setPasswordSaving] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const isAdmin = currentUser.role === 'admin';
 
-  const provisionStandardAccess = async () => {
-    const adminEmail = 'adm.truinexa@gmail.com';
-    const commercialEmail = 'comercial.truinexa@gmail.com';
-    const adminPassword = adminAccessPassword;
-    const commercialPassword = commercialAccessPassword;
+  const resetUserPassword = async (user: User) => {
+    const newPassword = (passwordDrafts[user.id] || '').trim();
 
-    if (adminPassword.length < 8 || commercialPassword.length < 8) {
-      setAccessProvisionError('Informe as duas senhas com pelo menos 8 caracteres.');
+    if (newPassword.length < 6) {
+      setPasswordError('A nova senha precisa ter pelo menos 6 caracteres.');
+      setPasswordSuccess(null);
       return;
     }
 
-    setProvisioningAccess(true);
-    setAccessProvisionError(null);
-    setProvisionedCredentials(null);
+    setPasswordSaving(user.id);
+    setPasswordError(null);
+    setPasswordSuccess(null);
 
     try {
       const { data, error } = await supabase.functions.invoke('truinexa-access-admin', {
         body: {
-          action: 'provision',
-          adminEmail,
-          adminPassword,
-          commercialEmail,
-          commercialPassword,
+          action: 'reset_password',
+          targetUserId: user.id,
+          newPassword,
         },
       });
 
       if (error) throw error;
-      if (data?.error) throw new Error(data?.message || 'Não foi possível criar os acessos.');
+      if (data?.error) throw new Error(data?.message || 'Não foi possível alterar a senha.');
 
-      setProvisionedCredentials({
-        adminEmail,
-        adminPassword,
-        commercialEmail,
-        commercialPassword,
-      });
+      if (user.id === currentUser.id) {
+        const { error: reauthError } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: newPassword,
+        });
+
+        if (reauthError) {
+          throw new Error(
+            'A senha foi alterada, mas a sessão não pôde ser renovada automaticamente. Entre novamente usando a nova senha.'
+          );
+        }
+      }
+
+      setPasswordDrafts((current) => ({ ...current, [user.id]: '' }));
+      setPasswordSuccess(user.id);
     } catch (error) {
-      setAccessProvisionError(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível criar os acessos padrão.'
+      setPasswordError(
+        error instanceof Error ? error.message : 'Não foi possível alterar a senha.'
       );
     } finally {
-      setProvisioningAccess(false);
+      setPasswordSaving(null);
     }
   };
 
@@ -1456,117 +1453,120 @@ export const TeamAndSettingsModule: React.FC<{
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 to-slate-900 p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <span className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold">
-              Acessos oficiais
-            </span>
-            <h3 className="mt-1 text-base font-display font-bold text-white">
-              Somente ADM + Comercial
-            </h3>
-            <p className="mt-1 text-xs leading-5 text-slate-400">
-              Cria ou redefine os dois logins reais no Supabase e bloqueia todos os outros acessos antigos.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            disabled={provisioningAccess}
-            onClick={() => void provisionStandardAccess()}
-            className="shrink-0 rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-60"
-          >
-            {provisioningAccess ? 'Aplicando senhas...' : 'Aplicar senhas ADM + Comercial'}
-          </button>
+        <div>
+          <span className="text-xs font-mono uppercase tracking-wider text-indigo-300 font-semibold">
+            Gerenciador de senhas
+          </span>
+          <h3 className="mt-1 text-base font-display font-bold text-white">
+            Redefinir senha de qualquer acesso
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-slate-400">
+            Altere uma conta por vez. A senha é gravada diretamente no Supabase Auth e nenhuma outra conta é desativada ou bloqueada.
+          </p>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <label className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-300">ADM</div>
-            <div className="mt-1 text-xs font-semibold text-white">adm.truinexa@gmail.com</div>
-            <input
-              type="password"
-              value={adminAccessPassword}
-              onChange={(event) => setAdminAccessPassword(event.target.value)}
-              placeholder="Digite a nova senha ADM"
-              autoComplete="new-password"
-              className="mt-3 h-10 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-xs text-white outline-none focus:border-indigo-400"
-            />
-            <p className="mt-1 text-[10px] text-slate-500">Acesso completo e configurações.</p>
-          </label>
-          <label className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
-            <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Comercial</div>
-            <div className="mt-1 text-xs font-semibold text-white">comercial.truinexa@gmail.com</div>
-            <input
-              type="password"
-              value={commercialAccessPassword}
-              onChange={(event) => setCommercialAccessPassword(event.target.value)}
-              placeholder="Digite a nova senha Comercial"
-              autoComplete="new-password"
-              className="mt-3 h-10 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-xs text-white outline-none focus:border-emerald-400"
-            />
-            <p className="mt-1 text-[10px] text-slate-500">CRM, clientes, WhatsApp, agenda e operação.</p>
-          </label>
-        </div>
+        <div className="mt-4 space-y-3">
+          {[...state.users]
+            .sort((a, b) => {
+              if (a.id === currentUser.id) return -1;
+              if (b.id === currentUser.id) return 1;
+              if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
+              return a.name.localeCompare(b.name);
+            })
+            .map((user) => {
+              const isCurrent = user.id === currentUser.id;
+              const saving = passwordSaving === user.id;
+              const success = passwordSuccess === user.id;
 
-        <div className="mt-3 text-[10px] leading-5 text-slate-500">
-          As senhas são enviadas diretamente para o backend autenticado e não ficam salvas no código público.
-        </div>
-
-        {provisionedCredentials && (
-          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-emerald-300">
-              Acessos criados com sucesso — copie agora
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg bg-slate-950 p-3">
-                <div className="text-[10px] font-semibold text-indigo-300">ADM</div>
-                <div className="mt-1 select-all text-xs text-white">{provisionedCredentials.adminEmail}</div>
-                <code className="mt-2 block select-all break-all text-xs font-bold text-emerald-300">
-                  {provisionedCredentials.adminPassword}
-                </code>
-                <button
-                  type="button"
-                  onClick={() =>
-                    void navigator.clipboard?.writeText(
-                      `ADM\nE-mail: ${provisionedCredentials.adminEmail}\nSenha: ${provisionedCredentials.adminPassword}`
-                    )
-                  }
-                  className="mt-2 text-[10px] font-semibold text-slate-300 hover:text-white"
+              return (
+                <div
+                  key={user.id}
+                  className="rounded-xl border border-white/10 bg-slate-950/55 p-3 sm:p-4"
                 >
-                  Copiar ADM
-                </button>
-              </div>
-              <div className="rounded-lg bg-slate-950 p-3">
-                <div className="text-[10px] font-semibold text-emerald-300">COMERCIAL</div>
-                <div className="mt-1 select-all text-xs text-white">{provisionedCredentials.commercialEmail}</div>
-                <code className="mt-2 block select-all break-all text-xs font-bold text-emerald-300">
-                  {provisionedCredentials.commercialPassword}
-                </code>
-                <button
-                  type="button"
-                  onClick={() =>
-                    void navigator.clipboard?.writeText(
-                      `COMERCIAL\nE-mail: ${provisionedCredentials.commercialEmail}\nSenha: ${provisionedCredentials.commercialPassword}`
-                    )
-                  }
-                  className="mt-2 text-[10px] font-semibold text-slate-300 hover:text-white"
-                >
-                  Copiar Comercial
-                </button>
-              </div>
-            </div>
-            <p className="mt-3 text-[11px] leading-5 text-emerald-100/80">
-              Todos os demais perfis foram desativados e bloqueados para novo login. Depois de copiar,
-              saia da conta atual e entre com o novo ADM.
-            </p>
-          </div>
-        )}
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`text-[10px] font-semibold uppercase tracking-wide ${
+                            user.role === 'admin' ? 'text-indigo-300' : 'text-emerald-300'
+                          }`}
+                        >
+                          {user.role === 'admin' ? 'ADM' : 'COMERCIAL'}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                            user.status === 'active'
+                              ? 'bg-emerald-500/15 text-emerald-300'
+                              : 'bg-slate-700 text-slate-400'
+                          }`}
+                        >
+                          {user.status === 'active' ? 'Ativo' : 'Inativo'}
+                        </span>
+                        {isCurrent && (
+                          <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[9px] font-semibold text-indigo-300">
+                            Você está nesta conta
+                          </span>
+                        )}
+                      </div>
 
-        {accessProvisionError && (
+                      <div className="mt-1 truncate text-sm font-bold text-white">
+                        {user.name}
+                      </div>
+                      <div className="truncate text-xs text-slate-400">{user.email}</div>
+                    </div>
+
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-[360px] sm:flex-row">
+                      <input
+                        type="password"
+                        value={passwordDrafts[user.id] || ''}
+                        onChange={(event) => {
+                          setPasswordDrafts((current) => ({
+                            ...current,
+                            [user.id]: event.target.value,
+                          }));
+                          if (passwordSuccess === user.id) setPasswordSuccess(null);
+                          setPasswordError(null);
+                        }}
+                        placeholder="Digite a nova senha"
+                        autoComplete="new-password"
+                        className="h-10 min-w-0 flex-1 rounded-lg border border-white/10 bg-slate-900 px-3 text-xs text-white outline-none focus:border-indigo-400"
+                      />
+                      <button
+                        type="button"
+                        disabled={saving || !(passwordDrafts[user.id] || '').trim()}
+                        onClick={() => void resetUserPassword(user)}
+                        className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                      >
+                        {saving ? (
+                          <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <KeyRound className="h-3.5 w-3.5" />
+                        )}
+                        {saving ? 'Alterando...' : 'Redefinir senha'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {success && (
+                    <div className="mt-3 flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-300">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Senha alterada no sistema. Este acesso já pode entrar usando a nova senha.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+        </div>
+
+        {passwordError && (
           <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
-            {accessProvisionError}
+            {passwordError}
           </div>
         )}
+
+        <p className="mt-4 text-[10px] leading-5 text-slate-500">
+          Senha mínima: 6 caracteres. Ao redefinir sua própria senha, a TRUINEXA renova sua sessão automaticamente para você continuar nesta tela.
+        </p>
       </div>
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
         <div>
