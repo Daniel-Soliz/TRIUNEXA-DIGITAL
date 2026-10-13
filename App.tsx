@@ -30,6 +30,7 @@ import {
   X,
   ChevronRight,
   Wifi,
+  Undo2,
 } from 'lucide-react';
 import {
   CRMState,
@@ -494,6 +495,41 @@ export default function App() {
 
     setResponsibleFilter(currentUser.id);
     setActiveTab('carteira');
+  };
+
+  const handleReleaseLead = async (lead: Lead) => {
+    if (!currentUser) return;
+
+    const protectedStage = ['PROPOSTA', 'NEGOCIAÇÃO', 'FECHADO', 'PERDIDO'].includes(lead.stage);
+    if (currentUser.role !== 'admin' && protectedStage) {
+      window.alert('Nesta etapa somente o ADM pode devolver o cliente para a fila.');
+      return;
+    }
+
+    const hadContact = Boolean(lead.contactStartedAt || lead.lastContactAt);
+    const confirmed = window.confirm(
+      hadContact
+        ? `Devolver ${lead.company} para a fila? O histórico de contato será preservado para o próximo responsável.`
+        : `Devolver ${lead.company} para a fila compartilhada?`
+    );
+
+    if (!confirmed) return;
+
+    const response = await crmFetch(`/api/leads/${lead.id}/release`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const payload = await response.json();
+    if (!response.ok) {
+      window.alert(payload?.error || 'Não foi possível devolver o cliente para a fila.');
+      return;
+    }
+
+    if (selectedLeadId === lead.id) {
+      setSelectedLeadId(null);
+      setEditLeadId(null);
+    }
   };
 
   const handleConfirmCloseDeal = async (leadId: string, closedDetails: ClosedDealDetails) => {
@@ -1374,6 +1410,23 @@ export default function App() {
                               Validado
                             </span>
                           )}
+                          {(lead.contactStartedAt || lead.lastContactAt) && (
+                            <span className="inline-flex rounded-full bg-amber-50 px-2 py-1 text-[9px] font-semibold text-amber-700">
+                              {(() => {
+                                const lastRelease = crmState.activityLogs.find(
+                                  (log) => log.leadId === lead.id && log.action === 'lead_released'
+                                );
+                                const previousName = String(
+                                  lastRelease?.metadata?.previousResponsibleName ||
+                                  lastRelease?.userName ||
+                                  ''
+                                );
+                                return previousName
+                                  ? `Contato anterior por ${previousName}`
+                                  : 'Já houve contato';
+                              })()}
+                            </span>
+                          )}
                         </div>
                         <h3 className="mt-3 truncate text-base font-display font-bold text-slate-950">
                           {lead.company}
@@ -1506,6 +1559,9 @@ export default function App() {
               <div className="md:hidden space-y-3">
                 {portfolioLeads.map((lead) => {
                   const stageMeta = KANBAN_STAGES.find((stage) => stage.id === lead.stage) || KANBAN_STAGES[0];
+                  const canReleaseLead =
+                    currentUser.role === 'admin' ||
+                    !['PROPOSTA', 'NEGOCIAÇÃO', 'FECHADO', 'PERDIDO'].includes(lead.stage);
                   return (
                     <div key={lead.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                       <div className="flex items-start justify-between gap-3">
@@ -1611,6 +1667,20 @@ export default function App() {
                           Ver lead
                         </button>
                       </div>
+                      <button
+                        type="button"
+                        disabled={!canReleaseLead}
+                        onClick={() => void handleReleaseLead(lead)}
+                        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                        title={
+                          canReleaseLead
+                            ? 'Devolver este cliente para a fila compartilhada'
+                            : 'Nesta etapa somente o ADM pode devolver o cliente'
+                        }
+                      >
+                        <Undo2 className="h-4 w-4" />
+                        {canReleaseLead ? 'Devolver à fila' : 'ADM para devolver'}
+                      </button>
                     </div>
                   );
                 })}
@@ -1645,6 +1715,9 @@ export default function App() {
                     {portfolioLeads.map((lead) => {
                       const stageMeta =
                         KANBAN_STAGES.find((stage) => stage.id === lead.stage) || KANBAN_STAGES[0];
+                      const canReleaseLead =
+                        currentUser.role === 'admin' ||
+                        !['PROPOSTA', 'NEGOCIAÇÃO', 'FECHADO', 'PERDIDO'].includes(lead.stage);
                       return (
                         <tr key={lead.id} className="hover:bg-slate-50 transition">
                           <td
@@ -1730,6 +1803,20 @@ export default function App() {
                                 className="px-2.5 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold cursor-pointer"
                               >
                                 Editar
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!canReleaseLead}
+                                onClick={() => void handleReleaseLead(lead)}
+                                className="px-2.5 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-slate-300 font-semibold inline-flex items-center gap-1.5 disabled:cursor-not-allowed disabled:opacity-40"
+                                title={
+                                  canReleaseLead
+                                    ? 'Devolver para a fila compartilhada'
+                                    : 'Nesta etapa somente o ADM pode devolver'
+                                }
+                              >
+                                <Undo2 className="w-3.5 h-3.5" />
+                                Devolver
                               </button>
                               <select
                                 value={lead.stage}
