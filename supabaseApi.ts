@@ -692,6 +692,52 @@ export async function crmFetch(input: string, init?: RequestInit): Promise<Respo
       return jsonResponse(lead);
     }
 
+    const releaseMatch = path.match(/^\/api\/leads\/([^/]+)\/release$/);
+    if (releaseMatch && method === 'POST') {
+      const id = releaseMatch[1];
+      const previous = await getLead(id);
+      if (!previous) return errorResponse('Cliente não encontrado.', 404);
+
+      const { data, error } = await supabase.rpc('truinexa_release_lead', {
+        p_lead_id: id,
+      });
+
+      if (error) {
+        const message = String(error.message || '');
+        const status =
+          message.includes('somente o ADM') || message.includes('própria carteira') ? 403 : 400;
+        return errorResponse(message || 'Não foi possível devolver o cliente para a fila.', status);
+      }
+
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) return errorResponse('Cliente não encontrado após devolver à fila.', 404);
+
+      const releasedLead = toLead(row);
+
+      await insertLog(
+        profile,
+        releasedLead,
+        'lead_released',
+        `${previous.company} foi devolvido para a fila compartilhada.`,
+        previous.stage,
+        releasedLead.stage,
+        {
+          previousResponsibleId: previous.responsibleId,
+          previousResponsibleName: previous.responsibleName,
+          hadPreviousContact: Boolean(previous.contactStartedAt || previous.lastContactAt),
+        }
+      );
+
+      await insertNotification(
+        'cliente_assumido',
+        'Cliente disponível novamente',
+        `${releasedLead.company} voltou para a fila compartilhada.`,
+        releasedLead.id
+      );
+
+      return jsonResponse(releasedLead);
+    }
+
     const contactMatch = path.match(/^\/api\/leads\/([^/]+)\/contact-started$/);
     if (contactMatch && method === 'POST') {
       const id = contactMatch[1];
