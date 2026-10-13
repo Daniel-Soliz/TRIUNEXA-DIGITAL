@@ -1367,6 +1367,8 @@ export const TeamAndSettingsModule: React.FC<{
   const [recoverySent, setRecoverySent] = useState<string | null>(null);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
   const [provisioningAccess, setProvisioningAccess] = useState(false);
+  const [adminAccessPassword, setAdminAccessPassword] = useState('');
+  const [commercialAccessPassword, setCommercialAccessPassword] = useState('');
   const [accessProvisionError, setAccessProvisionError] = useState<string | null>(null);
   const [provisionedCredentials, setProvisionedCredentials] = useState<{
     adminEmail: string;
@@ -1379,8 +1381,13 @@ export const TeamAndSettingsModule: React.FC<{
   const provisionStandardAccess = async () => {
     const adminEmail = 'adm.truinexa@gmail.com';
     const commercialEmail = 'comercial.truinexa@gmail.com';
-    const adminPassword = 'admin123';
-    const commercialPassword = 'comercial123';
+    const adminPassword = adminAccessPassword;
+    const commercialPassword = commercialAccessPassword;
+
+    if (adminPassword.length < 8 || commercialPassword.length < 8) {
+      setAccessProvisionError('Informe as duas senhas com pelo menos 8 caracteres.');
+      return;
+    }
 
     setProvisioningAccess(true);
     setAccessProvisionError(null);
@@ -1473,6 +1480,39 @@ export const TeamAndSettingsModule: React.FC<{
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-300">ADM</div>
+            <div className="mt-1 text-xs font-semibold text-white">adm.truinexa@gmail.com</div>
+            <input
+              type="password"
+              value={adminAccessPassword}
+              onChange={(event) => setAdminAccessPassword(event.target.value)}
+              placeholder="Digite a nova senha ADM"
+              autoComplete="new-password"
+              className="mt-3 h-10 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-xs text-white outline-none focus:border-indigo-400"
+            />
+            <p className="mt-1 text-[10px] text-slate-500">Acesso completo e configurações.</p>
+          </label>
+          <label className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
+            <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Comercial</div>
+            <div className="mt-1 text-xs font-semibold text-white">comercial.truinexa@gmail.com</div>
+            <input
+              type="password"
+              value={commercialAccessPassword}
+              onChange={(event) => setCommercialAccessPassword(event.target.value)}
+              placeholder="Digite a nova senha Comercial"
+              autoComplete="new-password"
+              className="mt-3 h-10 w-full rounded-lg border border-white/10 bg-slate-900 px-3 text-xs text-white outline-none focus:border-emerald-400"
+            />
+            <p className="mt-1 text-[10px] text-slate-500">CRM, clientes, WhatsApp, agenda e operação.</p>
+          </label>
+        </div>
+
+        <div className="mt-3 text-[10px] leading-5 text-slate-500">
+          As senhas são enviadas diretamente para o backend autenticado e não ficam salvas no código público.
+        </div>
+
+        <div className="hidden">
           <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-300">ADM</div>
             <div className="mt-1 text-xs font-semibold text-white">adm.truinexa@gmail.com</div>
@@ -1481,7 +1521,6 @@ export const TeamAndSettingsModule: React.FC<{
           <div className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
             <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-300">Comercial</div>
             <div className="mt-1 text-xs font-semibold text-white">comercial.truinexa@gmail.com</div>
-            <p className="mt-1 text-[10px] text-slate-500">CRM, clientes, WhatsApp, agenda e operação.</p>
           </div>
         </div>
 
