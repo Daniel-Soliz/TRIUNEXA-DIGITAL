@@ -567,15 +567,27 @@ export default function App() {
       if (!claimedLead) return;
       targetLead = claimedLead;
       setResponsibleFilter(currentUser.id);
-    } else if (
-      lead.responsibleId !== currentUser.id &&
-      currentUser.role !== 'admin'
-    ) {
-      window.alert('Este cliente já pertence à carteira de outro usuário.');
+    } else if (lead.responsibleId !== currentUser.id) {
+      window.alert(
+        `Este cliente já pertence à carteira de ${lead.responsibleName || 'outro usuário'}.`
+      );
       return;
     }
 
-    openRealWhatsApp(targetLead);
+    const message =
+      targetLead.whatsappMessage?.trim() ||
+      `Olá, tudo bem? Sou ${crmState?.config.senderName || 'Daniel Soliz'}, da ${crmState?.config.brandName || 'DS Digital'}. Encontrei a ${targetLead.company} e identifiquei uma oportunidade para melhorar a presença digital e facilitar o contato com novos clientes. Posso te mostrar uma ideia rápida?`;
+
+    try {
+      const startedLead = await handleStartWhatsAppContact(targetLead.id, message);
+      openRealWhatsApp(startedLead);
+    } catch (error) {
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível iniciar o contato pelo WhatsApp.'
+      );
+    }
   };
 
   const handleQuickWhatsApp = (lead: Lead) => {
