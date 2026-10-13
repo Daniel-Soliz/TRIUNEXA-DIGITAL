@@ -1301,7 +1301,7 @@ export default function App() {
                 >
                   <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Funil</div>
                   <div className="mt-1 flex items-end justify-between">
-                    <span className="text-xl font-bold text-slate-900">{portfolioLeads.length}</span>
+                    <span className="text-xl font-bold text-slate-900">{myPortfolioCount}</span>
                     <Kanban className="h-4 w-4 text-violet-500" />
                   </div>
                 </button>
