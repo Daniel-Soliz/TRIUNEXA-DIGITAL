@@ -24,36 +24,50 @@ function lead(segment: string, company = 'Studio Black 7'): Lead {
   } as Lead;
 }
 
-test('barbearia recebe apresentação breve de site, agenda, produtos e bio do Instagram', () => {
+test('barbearia recebe abordagem natural, sem emojis ou propaganda agressiva', () => {
   const msg = generateProspectingMessage(lead('Barbearia'), config);
 
-  expect(msg).toContain('Oi, tudo bem? Sou Daniel Soliz, da DS Digital!');
+  expect(msg).toContain('Oi, tudo bem? Aqui é o Daniel, da DS Digital.');
   expect(msg).toContain('Studio Black 7');
-  expect(msg).toContain('site exclusivo');
-  expect(msg).toContain('agendamentos online');
-  expect(msg).toContain('loja para vender produtos');
+  expect(msg).toContain('site próprio');
+  expect(msg).toContain('agendamento online');
+  expect(msg).toContain('vender produtos');
   expect(msg).toContain('bio do Instagram');
-  expect(msg).toContain('robôs no WhatsApp');
-  expect(msg).toContain('Posso te mostrar um exemplo');
-  expect(msg).not.toContain('paga bot');
-  expect(msg).not.toContain('Portfólio:');
-  expect(msg.length).toBeLessThan(650);
+  expect(msg).toContain('Já fiz algo parecido para uma barbearia.');
+  expect(msg).toContain('Posso te mandar o exemplo');
+  expect(msg).not.toMatch(/robôs|paga bot|vitalício|!|👋/);
+  expect(msg).not.toContain('Meu portfólio:');
+  expect(msg.length).toBeLessThan(570);
+});
+
+test('salão usa nome curto, texto sobre horários e demonstração real de barbearia', () => {
+  const msg = generateProspectingMessage(lead('Salão de Beleza', 'DUO+ Salão de Beleza Pinheiros'), config);
+
+  expect(msg).toContain('Vi a DUO+ e pensei numa ideia');
+  expect(msg).toContain('fotos dos trabalhos');
+  expect(msg).toContain('escolhe um horário para agendar');
+  expect(msg).toContain('link pode ficar direto na bio do Instagram');
+  expect(msg).toContain('Já fiz algo parecido para uma barbearia');
+  expect(msg).not.toContain('Salão de Beleza Pinheiros');
+  expect(msg).not.toContain('loja para vender produtos');
+  expect(msg.length).toBeLessThan(490);
 });
 
 test('restaurante recebe cardápio e pedidos, não cortes ou salão', () => {
   const msg = generateProspectingMessage(lead('Restaurante', 'Bistrô Primavera'), config);
-  expect(msg).toContain('cardápio digital');
-  expect(msg).toContain('pedidos');
-  expect(msg).toContain('reservas');
+  expect(msg).toContain('cardápio e pedidos');
+  expect(msg).toContain('link na bio do Instagram');
+  expect(msg).not.toContain('Já fiz algo parecido para uma barbearia');
   expect(msg).not.toContain('fotos dos cortes');
 });
 
 test('loja recebe vitrine de produtos; clínica não recebe promessa de loja', () => {
   const retail = generateProspectingMessage(lead('Loja de roupas'), config);
   const clinic = generateProspectingMessage(lead('Clínica Odontológica'), config);
-  expect(retail).toContain('loja online');
-  expect(clinic).toContain('solicitação de agendamentos');
+  expect(retail).toContain('loja online própria');
+  expect(clinic).toContain('solicitar horários');
   expect(clinic).not.toContain('loja para vender produtos');
+  expect(clinic).not.toContain('barbearia');
 });
 
 test('opções de personalização acrescentam apenas conteúdos solicitados', () => {
@@ -66,6 +80,7 @@ test('opções de personalização acrescentam apenas conteúdos solicitados', (
   expect(msg).toContain('em Brasilândia');
   expect(msg).toContain('https://example.com/portfolio');
   expect(msg).toContain('https://example.com/apresentacao');
+  expect(msg).toContain('Posso te mandar o exemplo');
 });
 
 test('link do WhatsApp abre número móvel e preserva acentos e parágrafos', () => {
