@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { AssetRef, SiteAction, SiteBlockV2, SiteSpecV2 } from './types';
 
+const PrintModeContext = React.createContext(false);
+
 type RendererProps = {
   spec: SiteSpecV2;
   publicMode?: boolean;
@@ -131,6 +133,7 @@ function Picture({
   treatment: SiteSpecV2['tokens']['imageTreatment'];
 }) {
   const [failed, setFailed] = useState(false);
+  const printMode = React.useContext(PrintModeContext);
   if (!asset?.url) return null;
 
   const filter =
@@ -162,7 +165,7 @@ function Picture({
           alt={asset.alt}
           className={className}
           style={{ filter }}
-          loading="lazy"
+          loading={printMode ? 'eager' : 'lazy'}
           onError={() => setFailed(true)}
         />
       )}
@@ -1043,17 +1046,23 @@ export function SiteRendererV2({
 
   if (forceAllPages) {
     return (
-      <div style={{ background: p.background, color: p.text, fontFamily: spec.tokens.typography.body }}>
-        {spec.pages.map((item, index) => (
-          <section key={item.id} className="site-print-page min-h-screen" style={{ breakAfter: index < spec.pages.length - 1 ? 'page' : 'auto' }}>
-            <div className="border-b px-6 py-4" style={{ borderColor: p.border }}>
-              <div className="text-base font-black">{spec.brand.name}</div>
-              <div className="mt-1 text-[10px]" style={{ color: p.muted }}>{item.label}</div>
-            </div>
-            {item.blocks.map(renderBlock)}
-          </section>
-        ))}
-      </div>
+      <PrintModeContext.Provider value>
+        <div style={{ background: p.background, color: p.text, fontFamily: spec.tokens.typography.body }}>
+          {spec.pages.map((item, index) => (
+            <section
+              key={item.id}
+              className="site-print-page min-h-screen"
+              style={{ breakAfter: index < spec.pages.length - 1 ? 'page' : 'auto' }}
+            >
+              <div className="border-b px-6 py-4" style={{ borderColor: p.border }}>
+                <div className="text-base font-black">{spec.brand.name}</div>
+                <div className="mt-1 text-[10px]" style={{ color: p.muted }}>{item.label}</div>
+              </div>
+              {item.blocks.map(renderBlock)}
+            </section>
+          ))}
+        </div>
+      </PrintModeContext.Provider>
     );
   }
 
