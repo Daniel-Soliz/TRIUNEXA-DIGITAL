@@ -45,6 +45,18 @@ for (const demo of demos) {
       expect(overflow.width).toBeLessThanOrEqual(overflow.viewport + 2);
 
       await page.waitForTimeout(350);
+
+      const imageCount = await page.locator('img').count();
+      if (imageCount > 0) {
+        await page.waitForFunction(() =>
+          Array.from(document.images).every((image) => image.complete)
+        );
+        const brokenImages = await page.locator('img').evaluateAll((images) =>
+          images.filter((image) => (image as HTMLImageElement).naturalWidth === 0).length
+        );
+        expect(brokenImages).toBe(0);
+      }
+
       await page.screenshot({
         path: testInfo.outputPath(`${demo.key}-${width}.png`),
         fullPage: true,
