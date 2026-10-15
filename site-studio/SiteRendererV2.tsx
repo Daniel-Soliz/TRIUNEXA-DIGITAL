@@ -838,6 +838,19 @@ export function SiteRendererV2({
   );
 
   useEffect(() => {
+    if (!publicMode || !page) return;
+    document.title = `${page.title || page.label} | ${spec.brand.name}`;
+
+    let description = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (!description) {
+      description = document.createElement('meta');
+      description.name = 'description';
+      document.head.appendChild(description);
+    }
+    description.content = spec.seo.description;
+  }, [publicMode, page, spec.brand.name, spec.seo.description]);
+
+  useEffect(() => {
     if (!publicMode) return;
     const fromUrl = new URL(window.location.href).searchParams.get('page');
     if (fromUrl && spec.pages.some((item) => item.id === fromUrl)) setActivePageId(fromUrl);
