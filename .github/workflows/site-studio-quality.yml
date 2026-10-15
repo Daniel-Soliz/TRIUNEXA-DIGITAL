@@ -1,0 +1,55 @@
+name: Test Site Studio 3.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'SiteStudio.tsx'
+      - 'site-studio/**'
+      - 'App.tsx'
+      - 'package.json'
+      - 'playwright.config.ts'
+      - 'tests/site-studio.spec.ts'
+      - '.github/workflows/site-studio-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  site-studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build
+        run: npm run build
+
+      - name: Type check
+        run: npm run lint
+
+      - name: Site Studio browser tests
+        run: npm run test:site-studio
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-studio-playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
