@@ -916,6 +916,25 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
                           </div>
                         ))}
                       </div>
+                      {(quality as any)?.designDiversity?.compared > 0 && (
+                        <div className="mt-3 rounded-xl border border-white/[0.07] bg-white/[0.025] p-2.5">
+                          <div className="text-[9px] font-black uppercase tracking-[.12em] text-slate-300">
+                            Originalidade visual verificada
+                          </div>
+                          <p className="mt-1 text-[9px] leading-4 text-slate-500">
+                            Similaridade estrutural máxima de{' '}
+                            {Math.round(Number((quality as any).designDiversity.finalSimilarity) * 100)}%
+                            {' '}contra {(quality as any).designDiversity.compared} sites recentes.
+                            {' '}Limite: {Math.round(Number((quality as any).designDiversity.threshold) * 100)}%.
+                          </p>
+                        </div>
+                      )}
+                      {!(quality as any)?.visualReview?.reviewedAt && (
+                        <p className="mt-3 text-[9px] leading-4 text-amber-300/80">
+                          Esta nota avalia a estrutura do site. A inspeção visual das capturas
+                          desktop e mobile ainda não foi concluída.
+                        </p>
+                      )}
                       {(quality as any)?.visualReview?.reviewedAt && (
                         <div className="mt-3 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.05] p-2.5">
                           <div className="text-[9px] font-black uppercase tracking-[.12em] text-emerald-400">
