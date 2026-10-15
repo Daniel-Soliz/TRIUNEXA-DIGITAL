@@ -164,7 +164,11 @@ export const DEFAULT_PROSPECTING_OPTIONS: ProspectingMessageOptions = {
 
 export function sanitizeWhatsAppNumber(value: string) {
   const digits = String(value || '').replace(/\D/g, '');
-  const withCountry = digits.startsWith('55') ? digits : `55${digits}`;
+  // An 11-digit local number can start with DDD 55: do not confuse it
+  // with the international country prefix 55.
+  const withCountry = digits.length === 11
+    ? `55${digits}`
+    : digits.length === 13 && digits.startsWith('55') ? digits : '';
   return /^55\d{2}9\d{8}$/.test(withCountry) ? withCountry : '';
 }
 
