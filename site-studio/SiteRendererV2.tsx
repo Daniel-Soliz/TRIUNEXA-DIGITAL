@@ -10,6 +10,7 @@ import {
   Mail,
   MapPin,
   MessageCircle,
+  Send,
   Phone,
   Quote,
   Star,
@@ -781,6 +782,134 @@ function Contact({
   );
 }
 
+function LeadForm({ block, spec }: { block: SiteBlockV2; spec: SiteSpecV2 }) {
+  const p = spec.tokens.colors;
+  const radius = radiusClass(spec.tokens.radius);
+  const [name, setName] = useState('');
+  const [contact, setContact] = useState('');
+  const [message, setMessage] = useState('');
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const lines = [
+      block.title || 'Solicitação pelo site',
+      name ? `Nome: ${name}` : '',
+      contact ? `Contato: ${contact}` : '',
+      message ? `Mensagem: ${message}` : '',
+    ].filter(Boolean);
+    const body = lines.join('\n');
+
+    if (spec.contact.whatsapp) {
+      const digits = spec.contact.whatsapp.replace(/\D/g, '');
+      const number = digits.startsWith('55') ? digits : `55${digits}`;
+      window.open(`https://wa.me/${number}?text=${encodeURIComponent(body)}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    if (spec.contact.email) {
+      window.location.href = `mailto:${spec.contact.email}?subject=${encodeURIComponent(
+        block.title || 'Contato pelo site'
+      )}&body=${encodeURIComponent(body)}`;
+    }
+  };
+
+  if (!spec.contact.whatsapp && !spec.contact.email) return null;
+
+  return (
+    <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+      <div className={`mx-auto max-w-4xl border p-6 sm:p-8 ${radius}`} style={{ background: p.surface, borderColor: p.border }}>
+        <div className="max-w-2xl">
+          <div className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: p.accent }}>
+            {block.eyebrow || 'Contato rápido'}
+          </div>
+          <h2 className="mt-2 text-3xl font-black" style={{ fontFamily: spec.tokens.typography.display }}>
+            {block.title || 'Conte um pouco do que você precisa'}
+          </h2>
+          {block.body && <p className="mt-3 text-sm leading-6" style={{ color: p.muted }}>{block.body}</p>}
+        </div>
+
+        <form onSubmit={submit} className="mt-6 grid gap-3 sm:grid-cols-2">
+          <label className="text-[10px] font-bold" style={{ color: p.muted }}>
+            Nome
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              required
+              className={`mt-1.5 h-11 w-full border bg-transparent px-3 text-sm outline-none ${radius}`}
+              style={{ borderColor: p.border, color: p.text }}
+            />
+          </label>
+          <label className="text-[10px] font-bold" style={{ color: p.muted }}>
+            Telefone ou e-mail
+            <input
+              value={contact}
+              onChange={(event) => setContact(event.target.value)}
+              required
+              className={`mt-1.5 h-11 w-full border bg-transparent px-3 text-sm outline-none ${radius}`}
+              style={{ borderColor: p.border, color: p.text }}
+            />
+          </label>
+          <label className="text-[10px] font-bold sm:col-span-2" style={{ color: p.muted }}>
+            Mensagem
+            <textarea
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              rows={4}
+              className={`mt-1.5 w-full resize-none border bg-transparent p-3 text-sm outline-none ${radius}`}
+              style={{ borderColor: p.border, color: p.text }}
+            />
+          </label>
+          <button
+            type="submit"
+            className={`inline-flex min-h-11 items-center justify-center gap-2 px-5 text-sm font-black sm:col-span-2 ${radius}`}
+            style={{ background: p.primary, color: contrastText(p.primary) }}
+          >
+            <Send className="h-4 w-4" />
+            {String(block.options?.submitLabel || 'Enviar solicitação')}
+          </button>
+        </form>
+      </div>
+    </section>
+  );
+}
+
+function LocationBlock({ block, spec }: { block: SiteBlockV2; spec: SiteSpecV2 }) {
+  const p = spec.tokens.colors;
+  const radius = radiusClass(spec.tokens.radius);
+  if (!spec.contact.address) return null;
+
+  return (
+    <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+      <div className={`mx-auto grid max-w-7xl gap-5 border p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center ${radius}`} style={{ background: p.surface, borderColor: p.border }}>
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.18em]" style={{ color: p.accent }}>
+            <MapPin className="h-4 w-4" />
+            Localização
+          </div>
+          <h2 className="mt-3 text-2xl font-black" style={{ fontFamily: spec.tokens.typography.display }}>
+            {block.title || 'Onde estamos'}
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6" style={{ color: p.muted }}>
+            {spec.contact.address}
+          </p>
+        </div>
+        {spec.contact.mapsUrl && (
+          <a
+            href={spec.contact.mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className={`inline-flex min-h-11 items-center justify-center gap-2 border px-5 text-sm font-bold ${radius}`}
+            style={{ borderColor: p.border, color: p.text }}
+          >
+            <ExternalLink className="h-4 w-4" />
+            Abrir no mapa
+          </a>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function GenericTeam({ block, spec }: { block: SiteBlockV2; spec: SiteSpecV2 }) {
   const p = spec.tokens.colors;
   const items = block.items || [];
@@ -815,6 +944,8 @@ const componentRegistry: Record<
   projects: Projects,
   team: GenericTeam,
   faq: FAQ,
+  form: LeadForm,
+  map: LocationBlock,
   cta: CTA,
   contact: Contact,
 };
