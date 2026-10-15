@@ -20,7 +20,7 @@ export type DesignSpecInput = {
     imageTreatment?: string;
     motion?: string;
   };
-  navigation?: Array<{ pageId?: string }>;
+  navigation?: Array<{ pageId?: string; label?: string }>;
 };
 
 export type DesignFingerprint = {
@@ -138,7 +138,7 @@ function variantFor(current: string, choices: string[], attempt: number, seed: n
 }
 
 function generateCandidate<T extends DesignSpecInput>(original: T, attempt: number, seed: number): T {
-  const next = structuredClone(original);
+  const next: DesignSpecInput = structuredClone(original);
   const pages = next.pages || [];
   const blocks = pages.flatMap((page) => page.blocks || []);
   const hero = blocks.find((block) => block.type === 'hero');
@@ -189,7 +189,7 @@ function generateCandidate<T extends DesignSpecInput>(original: T, attempt: numb
       })) as typeof next.navigation;
     }
   }
-  return next;
+  return next as T;
 }
 
 export type DiversityDecision<T> = {
