@@ -66,6 +66,8 @@ import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supab
 import { InstallAppButton } from './InstallAppButton';
 import { TeamChat } from './TeamChat';
 import { SiteStudio, PublicSiteDemo } from './SiteStudio';
+import { SiteRendererV2 } from './site-studio/SiteRendererV2';
+import { getReferenceDemo } from './site-studio/referenceDemos';
 
 type NavTab =
   | 'dashboard'
@@ -103,7 +105,10 @@ function isPasswordRecoveryUrl() {
 }
 
 export default function App() {
-  const publicDemoToken = new URLSearchParams(window.location.search).get('demo');
+  const searchParams = new URLSearchParams(window.location.search);
+  const publicDemoToken = searchParams.get('demo');
+  const referenceDemoKey = searchParams.get('reference');
+  const referenceDemo = getReferenceDemo(referenceDemoKey);
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('leads');
@@ -763,6 +768,10 @@ export default function App() {
       body: JSON.stringify({ userId: currentUser.id, notificationId }),
     });
   };
+
+  if (referenceDemo) {
+    return <SiteRendererV2 spec={referenceDemo} publicMode />;
+  }
 
   if (publicDemoToken) {
     return <PublicSiteDemo token={publicDemoToken} />;
