@@ -129,7 +129,9 @@ function Picture({
   className: string;
   treatment: SiteSpecV2['tokens']['imageTreatment'];
 }) {
+  const [failed, setFailed] = useState(false);
   if (!asset?.url) return null;
+
   const filter =
     treatment === 'cinematic'
       ? 'contrast(1.04) saturate(.88)'
@@ -139,16 +141,31 @@ function Picture({
           ? 'contrast(.96) saturate(.9)'
           : undefined;
 
+  const absolute = className.includes('absolute');
+
   return (
-    <figure className="relative h-full w-full overflow-hidden">
-      <img
-        src={asset.url}
-        alt={asset.alt}
-        className={className}
-        style={{ filter }}
-        loading="lazy"
-      />
-      {asset.illustrative && (
+    <figure
+      className={`${absolute ? 'absolute inset-0' : 'relative'} h-full w-full overflow-hidden`}
+    >
+      {failed ? (
+        <div
+          role="img"
+          aria-label={asset.alt || 'Imagem indisponível'}
+          className="grid h-full min-h-[180px] w-full place-items-center bg-gradient-to-br from-slate-800 to-slate-950 px-5 text-center text-xs text-white/55"
+        >
+          <span>Imagem indisponível</span>
+        </div>
+      ) : (
+        <img
+          src={asset.url}
+          alt={asset.alt}
+          className={className}
+          style={{ filter }}
+          loading="lazy"
+          onError={() => setFailed(true)}
+        />
+      )}
+      {asset.illustrative && !failed && (
         <figcaption className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-1 text-[9px] text-white/80 backdrop-blur">
           Imagem ilustrativa
         </figcaption>
