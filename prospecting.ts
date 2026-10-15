@@ -179,44 +179,76 @@ export function buildWhatsAppUrl(number: string, message: string): string {
   return phone && text ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : '';
 }
 
-type WebsiteOffer = { features: string; result: string };
+type WebsiteOffer = {
+  idea: string;
+  socialLink: string;
+  hasRelevantExample: boolean;
+};
 
 function websiteOffer(segmentRaw: string): WebsiteOffer {
   const segment = normalizeText(segmentRaw || '');
+
   if (/barbearia|barber/.test(segment)) {
     return {
-      features: 'agendamentos online, serviços, fotos dos cortes e até uma loja para vender produtos',
-      result: 'ver os cortes, escolher um horário e conhecer os produtos',
+      idea: 'um site próprio para a barbearia, com os cortes, agendamento online e até espaço para vender produtos',
+      socialLink: 'O link pode ficar na bio do Instagram, e o WhatsApp continua para quem quiser conversar.',
+      hasRelevantExample: true,
     };
   }
-  if (/salao|beleza|estetica/.test(segment)) {
+  if (/salao|beleza/.test(segment)) {
     return {
-      features: 'agendamentos online, serviços, fotos dos trabalhos e até um catálogo de produtos',
-      result: 'conhecer os serviços e escolher um horário',
+      idea: 'um site do próprio salão, onde o cliente vê os serviços, fotos dos trabalhos e escolhe um horário para agendar',
+      socialLink: 'O link pode ficar direto na bio do Instagram.',
+      hasRelevantExample: true,
+    };
+  }
+  if (/estetica/.test(segment)) {
+    return {
+      idea: 'um site com os procedimentos, fotos dos trabalhos e agendamento online',
+      socialLink: 'Assim, quem chega pelo Instagram consegue ver tudo e solicitar um horário.',
+      hasRelevantExample: true,
     };
   }
   if (/restaurante|pizzaria|hamburg|lanchonete|cafeteria/.test(segment)) {
     return {
-      features: 'cardápio digital, pedidos, reservas e todas as informações do local',
-      result: 'consultar o cardápio e fazer pedidos ou reservas',
+      idea: 'um site com cardápio e pedidos, para o cliente escolher sem precisar perguntar item por item no WhatsApp',
+      socialLink: 'Dá para divulgar o link na bio do Instagram.',
+      hasRelevantExample: false,
     };
   }
   if (/loja|varejo|comercio|roupa|acessorio|boutique/.test(segment)) {
     return {
-      features: 'catálogo, vitrine de produtos e uma loja online para receber pedidos',
-      result: 'conhecer os produtos e fazer pedidos',
+      idea: 'uma loja online própria, com fotos dos produtos e um jeito prático de receber pedidos',
+      socialLink: 'A pessoa já encontra tudo pelo link na bio do Instagram.',
+      hasRelevantExample: false,
     };
   }
   if (/clinica|odonto|dentist|consultorio|saude|psicolog/.test(segment)) {
     return {
-      features: 'apresentação dos serviços, informações da equipe e solicitação de agendamentos',
-      result: 'encontrar informações e solicitar um horário',
+      idea: 'um site com informações dos atendimentos, da equipe e opção de solicitar horários',
+      socialLink: 'O link pode ficar na bio do Instagram, sem deixar de usar o WhatsApp.',
+      hasRelevantExample: false,
     };
   }
   return {
-    features: 'serviços, informações, fotos dos trabalhos e recursos como agendamento ou catálogo, conforme a necessidade',
-    result: 'conhecer o trabalho da empresa e encontrar o próximo passo',
+    idea: 'um site próprio, com os serviços da empresa e um jeito mais fácil de pedir informação ou orçamento',
+    socialLink: 'Vocês podem divulgar pelo link na bio do Instagram e continuar atendendo pelo WhatsApp.',
+    hasRelevantExample: false,
   };
+}
+
+/**
+ * Search data sometimes joins a short brand with its business category and
+ * neighborhood. Use the short brand in casual WhatsApp copy; keep the full
+ * registered company name unchanged everywhere else in CRM.
+ */
+function firstContactBrandName(companyRaw: string, segment: string): string {
+  const full = (companyRaw || 'empresa de vocês').trim();
+  if (!/barbearia|barber|salao|beleza/.test(normalizeText(segment || ''))) {
+    return full;
+  }
+  const short = full.replace(/\s+(?:salão de beleza|salao de beleza|barbearia|barber shop)\b.*$/i, '').trim();
+  return short.length >= 3 ? short : full;
 }
 
 export function generateProspectingMessage(
@@ -224,30 +256,36 @@ export function generateProspectingMessage(
   settings: SystemConfig,
   options: ProspectingMessageOptions = DEFAULT_PROSPECTING_OPTIONS
 ) {
-  const sender = (settings.senderName || 'Daniel Soliz').trim();
+  const firstName = (settings.senderName || 'Daniel').trim().split(/\s+/)[0];
   const brand = (settings.brandName || 'DS Digital').trim();
-  const company = (lead.company || 'sua empresa').trim();
+  const company = firstContactBrandName(lead.company, lead.segment);
   const location = options.mentionNeighborhood && (lead.neighborhood || lead.city)
     ? ` em ${lead.neighborhood || lead.city}`
     : '';
   const offer = websiteOffer(lead.segment);
+
+  // First contact is a conversation, not a flyer: one idea, one benefit,
+  // and one simple question. No emoji, long feature list, price or assumptions
+  // about the software/robots the business currently uses.
   const parts = [
-    `Oi, tudo bem? Sou ${sender}, da ${brand}! 👋`,
-    `Conheci a ${company}${location} e queria te apresentar uma ideia.`,
-    `Já pensou em ter um site exclusivo para seu negócio, com ${offer.features}?`,
-    `O link pode ficar na bio do Instagram, para os clientes ${offer.result} sem depender só de mensagens ou robôs no WhatsApp.`,
+    `Oi, tudo bem? Aqui é o ${firstName}, da ${brand}.`,
+    `Vi a ${company}${location} e pensei numa ideia que pode ser interessante para vocês: ${offer.idea}. ${offer.socialLink}`,
   ];
 
   if (options.includeRecommendedService) {
     const service = (lead.recommendedService || lead.serviceInterest || '').trim();
-    if (service) parts.push(`Também podemos adaptar o projeto para: ${service}.`);
+    if (service) parts.push(`Dá para adaptar o projeto para ${service}.`);
   }
   if (options.includePortfolio && settings.portfolioUrl?.trim()) {
     parts.push(`Meu portfólio: ${settings.portfolioUrl.trim()}`);
   }
   if (options.includePresentation && settings.presentationUrl?.trim()) {
-    parts.push(`Apresentação: ${settings.presentationUrl.trim()}`);
+    parts.push(`Uma apresentação rápida: ${settings.presentationUrl.trim()}`);
   }
-  parts.push(`Posso te mostrar um exemplo de como ficaria para a ${company}?`);
+
+  parts.push(offer.hasRelevantExample
+    ? 'Já fiz algo parecido para uma barbearia. Posso te mandar o exemplo pra você dar uma olhada?'
+    : 'Posso te mostrar uma ideia de como isso ficaria pra vocês?');
+
   return parts.join('\n\n');
 }
