@@ -1,6 +1,15 @@
-name: Test Site Studio 3.0
+name: Test Site Studio 4.0
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'SiteStudio.tsx'
+      - 'site-studio/**'
+      - 'supabase/functions/truinexa-site-studio/**'
+      - 'tests/site-studio*.spec.ts'
+      - 'package.json'
+      - '.github/workflows/site-studio-quality.yml'
   push:
     branches: [main]
     paths:
@@ -9,7 +18,8 @@ on:
       - 'App.tsx'
       - 'package.json'
       - 'playwright.config.ts'
-      - 'tests/site-studio.spec.ts'
+      - 'tests/site-studio*.spec.ts'
+      - 'supabase/functions/truinexa-site-studio/**'
       - '.github/workflows/site-studio-quality.yml'
   workflow_dispatch:
 
