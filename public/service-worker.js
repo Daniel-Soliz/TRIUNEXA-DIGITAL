@@ -1,4 +1,4 @@
-const CACHE_NAME = 'truinexa-pwa-v17';
+const CACHE_NAME = 'truinexa-pwa-v18';
 const APP_ROOT = self.registration.scope;
 
 const shellAssets = [
