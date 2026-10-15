@@ -188,6 +188,14 @@ export function adaptLegacySiteSpec(input: LegacySiteSpec): SiteSpecV2 {
   const gallery = Array.isArray(input.gallery) ? input.gallery : [];
   const reviews = Array.isArray(input.reviews) ? input.reviews : [];
 
+  const toAsset = (asset: any): AssetRef => ({
+    url: String(asset?.url || ''),
+    alt: String(asset?.alt || input.brandName || ''),
+    attribution: asset?.attribution ? String(asset.attribution) : undefined,
+    source: asset?.source === 'google_places' ? 'google-places' : 'official-site',
+    verified: true,
+  });
+
   const pages: SitePageV2[] = [
     {
       id: 'home',
@@ -202,13 +210,7 @@ export function adaptLegacySiteSpec(input: LegacySiteSpec): SiteSpecV2 {
           eyebrow: input.hero?.eyebrow || input.tagline || '',
           title: input.hero?.title || input.brandName || '',
           body: input.hero?.subtitle || '',
-          media: gallery.slice(0, 1).map((asset: any) => ({
-            url: asset.url,
-            alt: asset.alt || input.brandName || '',
-            attribution: asset.attribution,
-            source: asset.source === 'google_places' ? 'google-places' : 'official-site',
-            verified: true,
-          })),
+          media: gallery.slice(0, 1).map(toAsset),
           primaryAction: input.contact?.whatsapp
             ? {
                 label: input.hero?.primaryCta || 'WhatsApp',
@@ -243,64 +245,57 @@ export function adaptLegacySiteSpec(input: LegacySiteSpec): SiteSpecV2 {
         },
       ],
     },
-    ...(reviews.length
-      ? [
-          {
-            id: 'reviews',
-            slug: '/avaliacoes',
-            label: 'Avaliações',
-            title: 'Avaliações',
-            blocks: [
-              {
-                id: 'legacy-reviews',
-                type: 'reviews' as const,
-                variant: 'grid',
-                title: 'Avaliações verificadas',
-                items: reviews,
-              },
-            ],
-          },
-        ]
-      : []),
-    ...(gallery.length
-      ? [
-          {
-            id: 'gallery',
-            slug: '/galeria',
-            label: 'Galeria',
-            title: 'Galeria',
-            blocks: [
-              {
-                id: 'legacy-gallery',
-                type: 'gallery' as const,
-                variant: 'mosaic',
-                media: gallery.map((asset: any) => ({
-                  url: asset.url,
-                  alt: asset.alt || input.brandName || '',
-                  attribution: asset.attribution,
-                  source: asset.source === 'google_places' ? 'google-places' : 'official-site',
-                  verified: true,
-                })),
-              },
-            ],
-          },
-        ]
-      : []),
-    {
-      id: 'contact',
-      slug: '/contato',
-      label: 'Contato',
-      title: 'Contato',
+  ];
+
+  if (reviews.length) {
+    pages.push({
+      id: 'reviews',
+      slug: '/avaliacoes',
+      label: 'Avaliações',
+      title: 'Avaliações',
       blocks: [
         {
-          id: 'legacy-contact',
-          type: 'contact',
-          variant: 'split',
-          title: input.contact?.actionLabel || 'Fale com a equipe',
+          id: 'legacy-reviews',
+          type: 'reviews',
+          variant: 'grid',
+          title: 'Avaliações verificadas',
+          items: reviews,
         },
       ],
-    },
-  ];
+    });
+  }
+
+  if (gallery.length) {
+    pages.push({
+      id: 'gallery',
+      slug: '/galeria',
+      label: 'Galeria',
+      title: 'Galeria',
+      blocks: [
+        {
+          id: 'legacy-gallery',
+          type: 'gallery',
+          variant: 'mosaic',
+          media: gallery.map(toAsset),
+        },
+      ],
+    });
+  }
+
+  pages.push({
+    id: 'contact',
+    slug: '/contato',
+    label: 'Contato',
+    title: 'Contato',
+    blocks: [
+      {
+        id: 'legacy-contact',
+        type: 'contact',
+        variant: 'split',
+        title: input.contact?.actionLabel || 'Fale com a equipe',
+      },
+    ],
+  });
 
   return {
     version: 2,
@@ -353,13 +348,7 @@ export function adaptLegacySiteSpec(input: LegacySiteSpec): SiteSpecV2 {
       mapsUrl: input.contact?.mapsUrl,
       openingHours: input.contact?.openingHours,
     },
-    assets: gallery.map((asset: any) => ({
-      url: asset.url,
-      alt: asset.alt || input.brandName || '',
-      attribution: asset.attribution,
-      source: asset.source === 'google_places' ? 'google-places' : 'official-site',
-      verified: true,
-    })),
+    assets: gallery.map(toAsset),
     disclosure: 'Demonstração visual criada pela TRUINEXA • não é o site oficial da empresa.',
   };
 }
