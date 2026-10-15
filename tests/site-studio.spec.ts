@@ -13,14 +13,14 @@ const demos = [
     brand: 'Axis Engenharia — DEMO FICTÍCIA',
     targetLabel: 'Projetos',
     targetPage: 'projects',
-    homeHero: 'editorial',
+    homeHero: 'magazine',
   },
   {
     key: 'clinica-odontologica',
     brand: 'Clínica Oris — DEMO FICTÍCIA',
     targetLabel: 'Tratamentos',
     targetPage: 'services',
-    homeHero: 'asymmetric',
+    homeHero: 'layered',
   },
 ] as const;
 
