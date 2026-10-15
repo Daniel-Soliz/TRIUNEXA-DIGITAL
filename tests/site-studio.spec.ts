@@ -113,3 +113,25 @@ test('todos os links de referência permanecem explicitamente fictícios', async
     await expect(page.getByText(/DEMONSTRAÇÃO FICTÍCIA TRUINEXA/i)).toBeVisible();
   }
 });
+
+
+for (const demo of demos) {
+  test(`PDF multipágina de ${demo.key} é gerado`, async ({ page }) => {
+    await page.goto(`/?reference=${demo.key}&print=1`);
+    const pages = page.locator('.site-print-page');
+    await expect(pages.first()).toBeVisible();
+    expect(await pages.count()).toBeGreaterThanOrEqual(4);
+
+    await page.waitForFunction(() =>
+      Array.from(document.images).every((image) => image.complete)
+    );
+
+    const pdf = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+    });
+
+    expect(pdf.byteLength).toBeGreaterThan(15_000);
+  });
+}
