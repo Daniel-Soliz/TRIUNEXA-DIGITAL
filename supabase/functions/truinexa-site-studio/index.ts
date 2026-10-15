@@ -2988,7 +2988,18 @@ Deno.serve(async (req: Request) => {
         model: Deno.env.get("OPENAI_API_KEY")
           ? Deno.env.get("OPENAI_SITE_MODEL") || "gpt-6.1-sol"
           : null,
-        engine: "TRUINEXA Design Engine V2",
+        engine: Deno.env.get("OPENAI_API_KEY")
+          ? "TRUINEXA Creative AI Engine V3"
+          : "TRUINEXA Design Engine V2",
+        creativeMode: Deno.env.get("OPENAI_API_KEY")
+          ? "advanced-ai"
+          : "structured-fallback",
+        reviewModel: Deno.env.get("OPENAI_API_KEY")
+          ? Deno.env.get("OPENAI_SITE_REVIEW_MODEL") || Deno.env.get("OPENAI_SITE_MODEL") || "gpt-6.1-sol"
+          : null,
+        warning: Deno.env.get("OPENAI_API_KEY")
+          ? null
+          : "A geração está usando o modo estruturado. Configure OPENAI_API_KEY para ativar direção criativa generativa e crítica de arte por IA.",
       });
     }
 
