@@ -10,7 +10,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "test:site-studio": "playwright test tests/site-studio.spec.ts tests/site-studio-diversity.spec.ts"
+    "test:site-studio": "playwright test tests/site-studio.spec.ts tests/site-studio-diversity.spec.ts",
+    "test:whatsapp": "playwright test tests/whatsapp-prospecting.spec.ts"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

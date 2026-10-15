@@ -150,118 +150,104 @@ export function getSegmentRule(segment: string): SegmentRule {
   );
 }
 
-function hashSeed(value: string) {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  }
-  return hash;
-}
-
-function choose<T>(items: T[], seed: number, offset = 0) {
-  return items[(seed + offset) % items.length];
-}
+/**
+ * Shared message for every one-click WhatsApp action in the CRM.
+ * Keep the first approach concise, specific and factual: we propose a website,
+ * we don't pretend to know which bot/platform the lead currently uses.
+ */
+export const DEFAULT_PROSPECTING_OPTIONS: ProspectingMessageOptions = {
+  includePortfolio: false,
+  mentionNeighborhood: false,
+  includePresentation: false,
+  includeRecommendedService: false,
+};
 
 export function sanitizeWhatsAppNumber(value: string) {
   const digits = String(value || '').replace(/\D/g, '');
-  const withCountry = digits.startsWith('55') ? digits : `55${digits}`;
+  // An 11-digit local number can start with DDD 55: do not confuse it
+  // with the international country prefix 55.
+  const withCountry = digits.length === 11
+    ? `55${digits}`
+    : digits.length === 13 && digits.startsWith('55') ? digits : '';
   return /^55\d{2}9\d{8}$/.test(withCountry) ? withCountry : '';
+}
+
+/** Never build a WhatsApp URL with a landline/invalid number or empty copy. */
+export function buildWhatsAppUrl(number: string, message: string): string {
+  const phone = sanitizeWhatsAppNumber(number);
+  const text = message.trim();
+  return phone && text ? `https://wa.me/${phone}?text=${encodeURIComponent(text)}` : '';
+}
+
+type WebsiteOffer = { features: string; result: string };
+
+function websiteOffer(segmentRaw: string): WebsiteOffer {
+  const segment = normalizeText(segmentRaw || '');
+  if (/barbearia|barber/.test(segment)) {
+    return {
+      features: 'agendamentos online, serviços, fotos dos cortes e até uma loja para vender produtos',
+      result: 'ver os cortes, escolher um horário e conhecer os produtos',
+    };
+  }
+  if (/salao|beleza|estetica/.test(segment)) {
+    return {
+      features: 'agendamentos online, serviços, fotos dos trabalhos e até um catálogo de produtos',
+      result: 'conhecer os serviços e escolher um horário',
+    };
+  }
+  if (/restaurante|pizzaria|hamburg|lanchonete|cafeteria/.test(segment)) {
+    return {
+      features: 'cardápio digital, pedidos, reservas e todas as informações do local',
+      result: 'consultar o cardápio e fazer pedidos ou reservas',
+    };
+  }
+  if (/loja|varejo|comercio|roupa|acessorio|boutique/.test(segment)) {
+    return {
+      features: 'catálogo, vitrine de produtos e uma loja online para receber pedidos',
+      result: 'conhecer os produtos e fazer pedidos',
+    };
+  }
+  if (/clinica|odonto|dentist|consultorio|saude|psicolog/.test(segment)) {
+    return {
+      features: 'apresentação dos serviços, informações da equipe e solicitação de agendamentos',
+      result: 'encontrar informações e solicitar um horário',
+    };
+  }
+  return {
+    features: 'serviços, informações, fotos dos trabalhos e recursos como agendamento ou catálogo, conforme a necessidade',
+    result: 'conhecer o trabalho da empresa e encontrar o próximo passo',
+  };
 }
 
 export function generateProspectingMessage(
   lead: Lead,
   settings: SystemConfig,
-  options: ProspectingMessageOptions
+  options: ProspectingMessageOptions = DEFAULT_PROSPECTING_OPTIONS
 ) {
-  const rule = getSegmentRule(lead.segment);
-  const seed = hashSeed(`${lead.id}:${lead.company}:${lead.segment}`);
-  const sender = settings.senderName || 'Daniel Soliz';
-  const brand = settings.brandName || 'DS Digital';
-  const location = options.mentionNeighborhood
-    ? lead.neighborhood || lead.city
-    : lead.city;
-  const recommendedService =
-    lead.recommendedService || lead.serviceInterest || rule.service;
-  const opportunity = lead.opportunitySummary || rule.opportunity;
-  const benefit = lead.recommendedBenefit || rule.benefit;
-
-  const isBarbershop =
-    normalizeText(lead.segment).includes('barbear') ||
-    normalizeText(lead.segment).includes('barber');
-
-  if (isBarbershop) {
-    const openings = [
-      `Olá, tudo bem? Sou ${sender}, da ${brand}. Encontrei a ${lead.company}${location ? ` em ${location}` : ''}.`,
-      `Oi, tudo bem? Aqui é ${sender}, da ${brand}. Conheci a ${lead.company}${location ? ` pesquisando barbearias em ${location}` : ''}.`,
-      `Olá! Sou ${sender}, da ${brand}. Vi a ${lead.company}${location ? ` aqui na região de ${location}` : ''} e tive uma ideia para vocês.`,
-    ];
-
-    const pitches = [
-      'Eu desenvolvo um site próprio para barbearia com agendamento, portfólio dos cortes, serviços, WhatsApp e até loja de produtos. Se vocês usam bot pago principalmente para agenda, em muitos casos dá para reduzir essa mensalidade levando esse fluxo para o próprio site.',
-      'Faço uma estrutura própria para barbearia com agenda, serviços, portfólio, WhatsApp e venda de produtos. Para quem paga bot mensal só para organizar horários, o site pode assumir boa parte desse processo.',
-      'Trabalho com site completo para barbearia: agendamento, serviços, portfólio, WhatsApp, produtos e painel de administração. Isso pode diminuir a dependência de ferramentas mensais usadas só para agenda e atendimento inicial.',
-    ];
-
-    const ctas = [
-      `Posso te mostrar um exemplo de como isso ficaria para a ${lead.company}?`,
-      `Quer que eu te mostre uma ideia rápida aplicada à ${lead.company}?`,
-      'Posso te mandar um exemplo para você ver em menos de 2 minutos?',
-    ];
-
-    const parts = [
-      choose(openings, seed),
-      '',
-      choose(pitches, seed, 1),
-    ];
-
-    if (options.includeRecommendedService && recommendedService) {
-      parts.push('', `A ideia seria: ${recommendedService}.`);
-    }
-
-    if (options.includePortfolio && settings.portfolioUrl) {
-      parts.push('', `Portfólio: ${settings.portfolioUrl}`);
-    }
-
-    if (options.includePresentation && settings.presentationUrl) {
-      parts.push('', `Apresentação: ${settings.presentationUrl}`);
-    }
-
-    parts.push('', choose(ctas, seed, 2));
-    return parts.join('\n').trim();
-  }
-
-  const openings = [
-    `Olá, tudo bem? Sou ${sender}, da ${brand}. Encontrei a ${lead.company}${location ? ` em ${location}` : ''}.`,
-    `Oi, tudo bem? Aqui é ${sender}, da ${brand}. Conheci a ${lead.company}${location ? ` pesquisando empresas em ${location}` : ''}.`,
-    `Olá! Sou ${sender}, da ${brand}. Vi a ${lead.company}${location ? ` na região de ${location}` : ''} e identifiquei uma oportunidade.`,
-  ];
-
-  const pitches = [
-    `Vi uma oportunidade para ${opportunity.charAt(0).toLowerCase() + opportunity.slice(1)} Eu consigo montar ${recommendedService} para ${benefit}.`,
-    `Acho que dá para melhorar um ponto simples: ${opportunity.charAt(0).toLowerCase() + opportunity.slice(1)} Minha sugestão seria ${recommendedService}.`,
-    `Pelo perfil do negócio, pensei em ${recommendedService} para ${benefit}.`,
-  ];
-
-  const ctas = [
-    `Posso te mostrar uma ideia rápida para a ${lead.company}?`,
-    'Posso te mandar um exemplo para você avaliar?',
-    'Quer que eu te mostre como isso poderia funcionar no seu negócio?',
-  ];
-
+  const sender = (settings.senderName || 'Daniel Soliz').trim();
+  const brand = (settings.brandName || 'DS Digital').trim();
+  const company = (lead.company || 'sua empresa').trim();
+  const location = options.mentionNeighborhood && (lead.neighborhood || lead.city)
+    ? ` em ${lead.neighborhood || lead.city}`
+    : '';
+  const offer = websiteOffer(lead.segment);
   const parts = [
-    choose(openings, seed),
-    '',
-    choose(pitches, seed, 1),
+    `Oi, tudo bem? Sou ${sender}, da ${brand}! 👋`,
+    `Conheci a ${company}${location} e queria te apresentar uma ideia.`,
+    `Já pensou em ter um site exclusivo para seu negócio, com ${offer.features}?`,
+    `O link pode ficar na bio do Instagram, para os clientes ${offer.result} sem depender só de mensagens ou robôs no WhatsApp.`,
   ];
 
-  if (options.includePortfolio && settings.portfolioUrl) {
-    parts.push('', `Portfólio: ${settings.portfolioUrl}`);
+  if (options.includeRecommendedService) {
+    const service = (lead.recommendedService || lead.serviceInterest || '').trim();
+    if (service) parts.push(`Também podemos adaptar o projeto para: ${service}.`);
   }
-
-  if (options.includePresentation && settings.presentationUrl) {
-    parts.push('', `Apresentação: ${settings.presentationUrl}`);
+  if (options.includePortfolio && settings.portfolioUrl?.trim()) {
+    parts.push(`Meu portfólio: ${settings.portfolioUrl.trim()}`);
   }
-
-  parts.push('', choose(ctas, seed, 2));
-  return parts.join('\n').trim();
+  if (options.includePresentation && settings.presentationUrl?.trim()) {
+    parts.push(`Apresentação: ${settings.presentationUrl.trim()}`);
+  }
+  parts.push(`Posso te mostrar um exemplo de como ficaria para a ${company}?`);
+  return parts.join('\n\n');
 }
