@@ -21,6 +21,7 @@ import {
   FileText,
   ExternalLink,
   Search,
+  Sparkles,
 } from 'lucide-react';
 import {
   Lead,
@@ -52,6 +53,7 @@ interface LeadDetailModalProps {
   ) => Promise<void>;
   onOpenWhatsApp: (lead: Lead) => void;
   onOpenAppointment: (lead: Lead) => void;
+  onOpenSiteStudio: (lead: Lead) => void;
   onOpenCloseDeal: (lead: Lead) => void;
   onOpenLostDeal: (lead: Lead) => void;
   onDeleteLeadPermanently: (leadId: string) => Promise<void>;
@@ -71,6 +73,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
   onAddInteraction,
   onOpenWhatsApp,
   onOpenAppointment,
+  onOpenSiteStudio,
   onOpenCloseDeal,
   onOpenLostDeal,
   onDeleteLeadPermanently,
@@ -134,7 +137,7 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
       await onUpdateLead(lead.id, { estimatedValue: val });
     } else if (noteType === 'ligacao') {
       finalMessage = `Ligação realizada: ${noteText.trim()}`;
-      if (lead.stage === 'NOVO LEAD' || lead.stage === 'ASSUMIDO') {
+      if (lead.stage === 'NOVO LEAD') {
         autoStage = 'CONTATO INICIADO';
       }
     }
@@ -251,6 +254,14 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                 <Calendar className="w-3.5 h-3.5" />
                 <span>Agendar contato</span>
               </button>
+
+              <button
+                onClick={() => onOpenSiteStudio(lead)}
+                className="px-3.5 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold flex items-center gap-2 transition cursor-pointer shadow-sm shadow-violet-950/30"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Gerar site</span>
+              </button>
             </div>
           ) : (
             <div className="flex items-center gap-3 text-xs">
@@ -262,6 +273,13 @@ export const LeadDetailModal: React.FC<LeadDetailModalProps> = ({
                     : 'Assuma o cliente para liberar ligação, roteiro e WhatsApp.'}
                 </div>
               </div>
+              <button
+                onClick={() => onOpenSiteStudio(lead)}
+                className="px-3 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold flex items-center gap-2 transition cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Gerar site</span>
+              </button>
               {!lead.responsibleId && (
                 <button
                   onClick={handleClaimLead}
