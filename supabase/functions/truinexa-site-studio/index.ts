@@ -2428,7 +2428,7 @@ async function processGeneration(admin: any, run: any, project: any, lead: any, 
     await markStage(admin, run.id, "build", "running", "Montando o SiteSpec sem executar código arbitrário.");
     if (spec.version !== 2 || !Array.isArray(spec.pages)) throw new Error("SiteSpec V2 inválido.");
 
-    const diversityAudit = chooseDistinctDesign(
+    let diversityAudit = chooseDistinctDesign(
       spec, designReferences, briefing.company + ":" + run.id, 0.82
     );
     const duplicateComposition = diversityAudit.originalSimilarity >= diversityAudit.threshold;
@@ -2458,6 +2458,20 @@ async function processGeneration(admin: any, run: any, project: any, lead: any, 
       } catch (error) {
         console.error("AI critic fallback:", error);
       }
+    }
+
+    // The AI critic can change hero and section variants, so recheck the
+    // actual FINAL specification, not only the pre-critic draft.
+    if (critic?.review) {
+      const finalAudit = chooseDistinctDesign(
+        spec, designReferences, briefing.company + ":" + run.id + ":final", 0.82
+      );
+      spec = finalAudit.spec;
+      diversityAudit = {
+        ...finalAudit,
+        originalSimilarity: diversityAudit.originalSimilarity,
+        changed: diversityAudit.changed || finalAudit.changed
+      };
     }
 
     let repaired = repair(spec);
