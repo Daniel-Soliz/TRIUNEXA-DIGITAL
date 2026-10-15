@@ -65,9 +65,26 @@ import {
 import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supabaseApi';
 import { InstallAppButton } from './InstallAppButton';
 import { TeamChat } from './TeamChat';
-import { SiteStudio, PublicSiteDemo } from './SiteStudio';
-import { SiteRendererV2 } from './site-studio/SiteRendererV2';
-import { getReferenceDemo } from './site-studio/referenceDemos';
+
+const SiteStudio = React.lazy(() =>
+  import('./SiteStudio').then((module) => ({ default: module.SiteStudio }))
+);
+const PublicSiteDemo = React.lazy(() =>
+  import('./SiteStudio').then((module) => ({ default: module.PublicSiteDemo }))
+);
+const ReferenceDemoView = React.lazy(() => import('./site-studio/ReferenceDemoView'));
+
+function SiteStudioLoading() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-[#0D0D0D] text-white">
+      <div className="text-center">
+        <Loader2 className="mx-auto h-7 w-7 animate-spin text-indigo-400" />
+        <p className="mt-3 text-xs text-slate-500">Carregando Site Studio...</p>
+      </div>
+    </div>
+  );
+}
+
 
 type NavTab =
   | 'dashboard'
@@ -108,7 +125,6 @@ export default function App() {
   const searchParams = new URLSearchParams(window.location.search);
   const publicDemoToken = searchParams.get('demo');
   const referenceDemoKey = searchParams.get('reference');
-  const referenceDemo = getReferenceDemo(referenceDemoKey);
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('leads');
@@ -769,12 +785,20 @@ export default function App() {
     });
   };
 
-  if (referenceDemo) {
-    return <SiteRendererV2 spec={referenceDemo} publicMode />;
+  if (referenceDemoKey) {
+    return (
+      <React.Suspense fallback={<SiteStudioLoading />}>
+        <ReferenceDemoView demoKey={referenceDemoKey} />
+      </React.Suspense>
+    );
   }
 
   if (publicDemoToken) {
-    return <PublicSiteDemo token={publicDemoToken} />;
+    return (
+      <React.Suspense fallback={<SiteStudioLoading />}>
+        <PublicSiteDemo token={publicDemoToken} />
+      </React.Suspense>
+    );
   }
 
   if (!crmState) {
@@ -2125,11 +2149,19 @@ export default function App() {
       />
 
       {siteStudioLead && (
-        <SiteStudio
-          lead={siteStudioLead}
-          currentUser={currentUser}
-          onClose={() => setSiteStudioLead(null)}
-        />
+        <React.Suspense
+          fallback={
+            <div className="fixed inset-0 z-[70]">
+              <SiteStudioLoading />
+            </div>
+          }
+        >
+          <SiteStudio
+            lead={siteStudioLead}
+            currentUser={currentUser}
+            onClose={() => setSiteStudioLead(null)}
+          />
+        </React.Suspense>
       )}
 
       <QuickAppointmentModal
