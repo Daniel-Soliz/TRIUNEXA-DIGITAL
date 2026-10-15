@@ -166,6 +166,12 @@ function Picture({
           className={className}
           style={{ filter }}
           loading={printMode ? 'eager' : 'lazy'}
+          onLoad={(event) => {
+            const image = event.currentTarget;
+            if (image.naturalWidth < 160 || image.naturalHeight < 120) {
+              setFailed(true);
+            }
+          }}
           onError={() => setFailed(true)}
         />
       )}
