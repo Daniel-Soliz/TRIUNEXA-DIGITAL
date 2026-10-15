@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { chooseDistinctDesign, fingerprintSiteDesign } from "./designDiversity.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -1627,7 +1628,7 @@ function extractOutputText(data: any) {
   return parts.join("\n");
 }
 
-async function optionalAIStudioPlan(lead: any, research: any, briefing: any) {
+async function optionalAIStudioPlan(lead: any, research: any, briefing: any, recentDesignFingerprints: any[] = []) {
   const key = Deno.env.get("OPENAI_API_KEY");
   if (!key) return null;
 
@@ -1653,6 +1654,9 @@ async function optionalAIStudioPlan(lead: any, research: any, briefing: any) {
           "A prioridade é DIFERENCIAÇÃO. Não use fórmulas genéricas de IA e não monte sempre hero + 3 cards + CTA.",
           "A composição precisa nascer da empresa, do segmento, dos ativos visuais reais e do objetivo comercial.",
           "Crie exatamente três direções artísticas que sejam estruturalmente diferentes, não somente paletas diferentes.",
+          "Considere o campo recentDesignFingerprints: são estruturas de projetos anteriores sem dados de clientes. Evite repetir hero, composição, sequência de seções e ritmo desses trabalhos.",
+          "Trocar cores, fotografias, títulos ou fontes sem mudar a arquitetura visual NÃO conta como direção artística original.",
+          "Prefira um ritmo editorial coerente com cada marca. Não adicione seções para preencher espaço nem afirme que uma integração está funcionando se não houver dados.",
           "Evite clichês como 'uma experiência digital feita para o seu negócio', 'como podemos ajudar', 'soluções sob medida', 'excelência e qualidade' e títulos vazios.",
           "Escreva títulos comerciais específicos e naturais em português do Brasil.",
           "Nunca invente equipe, anos de mercado, números, endereço, avaliações, serviços específicos ou diferenciais factuais que não estejam confirmados.",
@@ -1679,6 +1683,7 @@ async function optionalAIStudioPlan(lead: any, research: any, briefing: any) {
               },
               verifiedBriefing: briefing,
               verifiedResearch: research,
+              recentDesignFingerprints,
               componentRegistry: {
                 hero: ["cinematic","editorial","fullscreen","asymmetric","magazine","layered","minimal-type"],
                 intro: ["split","editorial","statement"],
@@ -2310,14 +2315,39 @@ async function processGeneration(admin: any, run: any, project: any, lead: any, 
     await markStage(admin, run.id, "briefing", "running", "Construindo briefing factual antes da criação.");
     const baselineBriefing = buildBriefing(lead, website, places, null);
     const openAIKey = Deno.env.get("OPENAI_API_KEY");
+    // Consult design history BEFORE planning. Only structural fingerprints
+    // (never other customers' names, contacts or content) reach the model.
+    const { data: recentProjects, error: historyError } = await admin
+      .from("truinexa_site_projects")
+      .select("id,site_spec")
+      .neq("id", project.id)
+      .eq("spec_version", 2)
+      .order("updated_at", { ascending: false })
+      .limit(20);
+    if (historyError) console.warn("Design history unavailable:", historyError.message);
+    const designReferences = (recentProjects || [])
+      .map((item: any) => item.site_spec)
+      .filter((item: any) => item?.version === 2 && Array.isArray(item.pages));
+    const recentDesignFingerprints = designReferences.slice(0, 12).map(fingerprintSiteDesign);
 
     let aiStudio: any = null;
     if (openAIKey) {
       await markStage(admin, run.id, "briefing", "running", "GPT-6.1 Sol está pesquisando, pensando e definindo a estratégia criativa.");
       try {
-        aiStudio = await optionalAIStudioPlan(lead, research, baselineBriefing);
+        aiStudio = await optionalAIStudioPlan(lead, research, baselineBriefing, recentDesignFingerprints);
       } catch (error) {
-        console.error("Advanced AI fallback:", error);
+        console.error("Advanced AI unavailable:", error);
+        // Never label a simple fallback as premium AI generation. Keep the
+        // previously saved site/version untouched and surface the real failure.
+        throw new Error(
+          "A IA criativa não conseguiu concluir o plano. Verifique a configuração, créditos e logs da OpenAI. " +
+          "A geração foi interrompida para evitar um site genérico; sua versão anterior foi preservada."
+        );
+      }
+      if (!aiStudio?.plan?.pages?.length) {
+        throw new Error(
+          "A IA não retornou um plano de páginas válido. Nenhum template automático foi publicado."
+        );
       }
     }
 
@@ -2409,35 +2439,22 @@ async function processGeneration(admin: any, run: any, project: any, lead: any, 
     await markStage(admin, run.id, "build", "running", "Montando o SiteSpec sem executar código arbitrário.");
     if (spec.version !== 2 || !Array.isArray(spec.pages)) throw new Error("SiteSpec V2 inválido.");
 
-    const { data: recentProjects } = await admin
-      .from("truinexa_site_projects")
-      .select("id,site_spec")
-      .neq("id", project.id)
-      .eq("spec_version", 2)
-      .order("updated_at", { ascending: false })
-      .limit(20);
-
-    let duplicateComposition = false;
-    const signature = compositionSignature(spec);
-    for (const recent of recentProjects || []) {
-      if (recent?.site_spec?.version === 2 && compositionSignature(recent.site_spec) === signature) {
-        duplicateComposition = true;
-        break;
-      }
-    }
-
-    if (duplicateComposition) {
-      spec = diversifySpec(spec, briefing.company + ":" + run.id);
-    }
+    let diversityAudit = chooseDistinctDesign(
+      spec, designReferences, briefing.company + ":" + run.id, 0.82
+    );
+    const duplicateComposition = diversityAudit.originalSimilarity >= diversityAudit.threshold;
+    spec = diversityAudit.spec;
 
     await markStage(
       admin,
       run.id,
       "build",
       "completed",
-      duplicateComposition
-        ? "Composição repetitiva detectada e diversificada antes da revisão."
-        : "Composição construída sem repetir a assinatura recente."
+      diversityAudit.changed
+        ? "Similaridade elevada detectada: alternativa estrutural selecionada."
+        : duplicateComposition
+          ? "Composição muito semelhante; revisão de originalidade necessária."
+          : "Composição comparada com os projetos recentes."
     );
 
     await markStage(admin, run.id, "quality", "running", "Executando crítica de agência e validação técnica.");
@@ -2452,6 +2469,20 @@ async function processGeneration(admin: any, run: any, project: any, lead: any, 
       } catch (error) {
         console.error("AI critic fallback:", error);
       }
+    }
+
+    // The AI critic can change hero and section variants, so recheck the
+    // actual FINAL specification, not only the pre-critic draft.
+    if (critic?.review) {
+      const finalAudit = chooseDistinctDesign(
+        spec, designReferences, briefing.company + ":" + run.id + ":final", 0.82
+      );
+      spec = finalAudit.spec;
+      diversityAudit = {
+        ...finalAudit,
+        originalSimilarity: diversityAudit.originalSimilarity,
+        changed: diversityAudit.changed || finalAudit.changed
+      };
     }
 
     let repaired = repair(spec);
@@ -2473,17 +2504,36 @@ async function processGeneration(admin: any, run: any, project: any, lead: any, 
       }
     }
 
-    if (duplicateComposition) {
+    qualityReport.designDiversity = {
+      compared: diversityAudit.compared,
+      initialSimilarity: diversityAudit.originalSimilarity,
+      finalSimilarity: diversityAudit.finalSimilarity,
+      threshold: diversityAudit.threshold,
+      structurallyChanged: diversityAudit.changed
+    };
+    qualityReport.visualReviewStatus = "pending_real_screenshots";
+    if (diversityAudit.compared > 0) {
+      const stillSimilar = diversityAudit.finalSimilarity >= diversityAudit.threshold;
       qualityReport.checks = [
         ...(qualityReport.checks || []),
         {
           id: "portfolio-distinctiveness",
           label: "Diferenciação contra sites recentes",
-          score: 88,
-          passed: true,
-          detail: "Uma assinatura repetida foi detectada e alterada automaticamente."
+          score: stillSimilar ? 55 : 94,
+          passed: !stillSimilar,
+          detail: "Similaridade estrutural máxima: " +
+            Math.round(diversityAudit.finalSimilarity * 100) + "% entre " +
+            diversityAudit.compared + " projetos (limite: " +
+            Math.round(diversityAudit.threshold * 100) + "%)."
         }
       ];
+      if (stillSimilar) {
+        qualityReport.passed = false;
+        qualityReport.fixes = [
+          ...(qualityReport.fixes || []),
+          "Site muito parecido com projetos recentes: refazer a arquitetura e a direção de arte."
+        ];
+      }
     }
 
     await admin
@@ -2504,8 +2554,8 @@ async function processGeneration(admin: any, run: any, project: any, lead: any, 
       "quality",
       "completed",
       critic?.review
-        ? "Crítica de direção de arte + validação técnica aprovadas."
-        : "Validação técnica aprovada; revisão visual por IA não disponível.",
+        ? "Crítica da especificação e validação estrutural concluídas; revisão por screenshots pendente."
+        : "Validação estrutural concluída; revisão visual por screenshots pendente.",
       {
         structuralScore: qualityReport.score,
         criticScore: critic?.review?.score || null,
@@ -2938,7 +2988,18 @@ Deno.serve(async (req: Request) => {
         model: Deno.env.get("OPENAI_API_KEY")
           ? Deno.env.get("OPENAI_SITE_MODEL") || "gpt-6.1-sol"
           : null,
-        engine: "TRUINEXA Design Engine V2",
+        engine: Deno.env.get("OPENAI_API_KEY")
+          ? "TRUINEXA Creative AI Engine V3"
+          : "TRUINEXA Design Engine V2",
+        creativeMode: Deno.env.get("OPENAI_API_KEY")
+          ? "advanced-ai"
+          : "structured-fallback",
+        reviewModel: Deno.env.get("OPENAI_API_KEY")
+          ? Deno.env.get("OPENAI_SITE_REVIEW_MODEL") || Deno.env.get("OPENAI_SITE_MODEL") || "gpt-6.1-sol"
+          : null,
+        warning: Deno.env.get("OPENAI_API_KEY")
+          ? null
+          : "A geração está usando o modo estruturado. Configure OPENAI_API_KEY para ativar direção criativa generativa e crítica de arte por IA.",
       });
     }
 
