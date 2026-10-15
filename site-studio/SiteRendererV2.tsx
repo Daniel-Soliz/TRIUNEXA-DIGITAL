@@ -673,7 +673,7 @@ function Contact({
     c.email && { icon: Mail, label: 'E-mail', text: c.email, href: `mailto:${c.email}` },
     c.instagram && { icon: Instagram, label: 'Instagram', text: c.instagram, href: c.instagram.startsWith('http') ? c.instagram : `https://instagram.com/${c.instagram.replace('@', '')}` },
     c.address && { icon: MapPin, label: 'Localização', text: c.address, href: c.mapsUrl || undefined },
-  ].filter(Boolean) as Array<{ icon: React.ComponentType<{ className?: string }>; label: string; text: string; href?: string }>;
+  ].filter(Boolean) as Array<{ icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>; label: string; text: string; href?: string }>;
 
   return (
     <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
