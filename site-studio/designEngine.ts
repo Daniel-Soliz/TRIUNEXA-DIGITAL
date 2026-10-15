@@ -422,9 +422,12 @@ export function buildSiteSpecV2(
     );
   }
 
-  pages.push(
-    page('contact', 'Contato', [
-      makeBlock('contact-main', 'contact', direction.family === 'local-business-pro' ? 'map-split' : 'split', {
+  const contactBlocks: SiteBlockV2[] = [
+    makeBlock(
+      'contact-main',
+      'contact',
+      direction.family === 'local-business-pro' ? 'map-split' : 'split',
+      {
         eyebrow: 'Contato',
         title: /oficina|auto/i.test(briefing.segment)
           ? 'Solicite um orçamento'
@@ -433,9 +436,41 @@ export function buildSiteSpecV2(
             : 'Fale com a equipe',
         body: briefing.location,
         primaryAction: cta(briefing),
-      }),
-    ])
-  );
+      }
+    ),
+  ];
+
+  const shouldUseForm =
+    /construtora|engenharia|oficina|auto|mec[aâ]nica|consult|tecnologia|software|servi[cç]os/i.test(
+      briefing.segment
+    ) && Boolean(briefing.contact.whatsapp || briefing.contact.email);
+
+  if (shouldUseForm) {
+    contactBlocks.push(
+      makeBlock('contact-form', 'form', 'compact', {
+        eyebrow: 'Solicitação',
+        title: /oficina|auto|mec[aâ]nica/i.test(briefing.segment)
+          ? 'Conte o que seu veículo precisa'
+          : 'Conte um pouco sobre sua necessidade',
+        body: 'A mensagem é encaminhada pelo canal de contato configurado da empresa.',
+        options: {
+          submitLabel: /oficina|auto|mec[aâ]nica/i.test(briefing.segment)
+            ? 'Pedir orçamento'
+            : 'Enviar solicitação',
+        },
+      })
+    );
+  }
+
+  if (briefing.contact.address) {
+    contactBlocks.push(
+      makeBlock('contact-location', 'map', 'location-card', {
+        title: 'Localização',
+      })
+    );
+  }
+
+  pages.push(page('contact', 'Contato', contactBlocks));
 
   return {
     version: 2,
