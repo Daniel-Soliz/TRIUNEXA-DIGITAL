@@ -9,7 +9,7 @@ export default defineConfig(() => {
     base: process.env.GITHUB_ACTIONS === 'true' ? '/TRIUNEXA-DIGITAL/' : '/',
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {
