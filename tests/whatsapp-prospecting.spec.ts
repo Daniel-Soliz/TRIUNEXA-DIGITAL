@@ -83,4 +83,5 @@ test('não direciona telefones fixos, números inválidos ou textos vazios', () 
   expect(buildWhatsAppUrl('(11) 3456-7890', 'Oi')).toBe('');
   expect(buildWhatsAppUrl('(11) 99999-9999', ' ')).toBe('');
   expect(sanitizeWhatsAppNumber('11999999999')).toBe('5511999999999');
+  expect(sanitizeWhatsAppNumber('55999999999')).toBe('5555999999999');
 });
