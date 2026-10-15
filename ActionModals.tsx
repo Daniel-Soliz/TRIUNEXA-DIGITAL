@@ -32,6 +32,8 @@ import {
 import {
   generateProspectingMessage,
   sanitizeWhatsAppNumber,
+  buildWhatsAppUrl,
+  DEFAULT_PROSPECTING_OPTIONS,
   ProspectingMessageOptions,
 } from './prospecting';
 
@@ -855,10 +857,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
   const [sending, setSending] = useState(false);
   const [sentFeedback, setSentFeedback] = useState<string | null>(null);
   const [options, setOptions] = useState<ProspectingMessageOptions>({
-    includePortfolio: false,
-    mentionNeighborhood: true,
-    includePresentation: false,
-    includeRecommendedService: false,
+    ...DEFAULT_PROSPECTING_OPTIONS,
   });
 
   const formatTemplate = (raw: string, l: Lead) =>
@@ -921,20 +920,8 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
     if (!lead) return;
     setActiveStep('abertura');
     setSelectedTemplateId('');
-    setOptions({
-      includePortfolio: false,
-      mentionNeighborhood: true,
-      includePresentation: false,
-      includeRecommendedService: false,
-    });
-    setCustomMessage(
-      generateProspectingMessage(lead, settings, {
-        includePortfolio: false,
-        mentionNeighborhood: true,
-        includePresentation: false,
-        includeRecommendedService: false,
-      })
-    );
+    setOptions({ ...DEFAULT_PROSPECTING_OPTIONS });
+    setCustomMessage(generateProspectingMessage(lead, settings));
     setSentFeedback(null);
   }, [lead?.id, settings.portfolioUrl, settings.presentationUrl, settings.senderName, settings.brandName]);
 
@@ -944,11 +931,8 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
   const canContact =
     isAssigned &&
     (lead.responsibleId === currentUser.id || currentUser.role === 'admin');
-  const cleanPhone = sanitizeWhatsAppNumber(lead.whatsapp || '');
-  const hasVerifiedWhatsApp = Boolean(cleanPhone);
-  const waUrl = hasVerifiedWhatsApp
-    ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(customMessage)}`
-    : '';
+  const hasVerifiedWhatsApp = Boolean(sanitizeWhatsAppNumber(lead.whatsapp || lead.phone || ''));
+  const waUrl = buildWhatsAppUrl(lead.whatsapp || lead.phone || '', customMessage);
 
   const selectStep = (step: SalesScriptStep) => {
     setActiveStep(step);
@@ -994,7 +978,7 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
   };
 
   const handleOpenWhatsApp = async () => {
-    if (!canContact || !hasVerifiedWhatsApp) return;
+    if (!canContact || !waUrl) return;
 
     const popup = window.open('', '_blank');
     setSending(true);
@@ -1123,7 +1107,7 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
-                  ['abertura', '1. Abertura'],
+                  ['abertura', '1. Site próprio'],
                   ['qualificacao', '2. Qualificar'],
                   ['valor', '3. Valor'],
                   ['proposta', '4. Proposta'],
@@ -1184,6 +1168,9 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
                 disabled={!canContact}
                 className="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm text-slate-800 leading-6 focus:outline-none focus:border-indigo-400 disabled:opacity-50"
               />
+              <p className="mt-2 text-[11px] leading-4 text-slate-500">
+                A conversa abrirá no WhatsApp com a mensagem preenchida. Você poderá revisá-la antes de enviar.
+              </p>
             </div>
 
             <div>
@@ -1235,7 +1222,7 @@ Se fizer sentido, alinhamos os detalhes e seguimos. Se não fizer, sem problema.
                 <button
                   type="button"
                   onClick={() => void handleOpenWhatsApp()}
-                  disabled={sending || !canContact || !hasVerifiedWhatsApp}
+                  disabled={sending || !canContact || !waUrl}
                   className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
