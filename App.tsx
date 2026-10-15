@@ -65,6 +65,7 @@ import {
 import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supabaseApi';
 import { InstallAppButton } from './InstallAppButton';
 import { TeamChat } from './TeamChat';
+import { SiteStudio, PublicSiteDemo } from './SiteStudio';
 
 type NavTab =
   | 'dashboard'
@@ -102,6 +103,7 @@ function isPasswordRecoveryUrl() {
 }
 
 export default function App() {
+  const publicDemoToken = new URLSearchParams(window.location.search).get('demo');
   const [crmState, setCrmState] = useState<CRMState | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('leads');
@@ -141,6 +143,7 @@ export default function App() {
   const [lostDealLead, setLostDealLead] = useState<Lead | null>(null);
   const [whatsAppLead, setWhatsAppLead] = useState<Lead | null>(null);
   const [appointmentLead, setAppointmentLead] = useState<Lead | null>(null);
+  const [siteStudioLead, setSiteStudioLead] = useState<Lead | null>(null);
 
   // Supabase bootstrap + Realtime
   useEffect(() => {
@@ -760,6 +763,10 @@ export default function App() {
       body: JSON.stringify({ userId: currentUser.id, notificationId }),
     });
   };
+
+  if (publicDemoToken) {
+    return <PublicSiteDemo token={publicDemoToken} />;
+  }
 
   if (!crmState) {
     if (bootError) {
@@ -2062,6 +2069,7 @@ export default function App() {
         onAddInteraction={handleAddInteraction}
         onOpenWhatsApp={(lead) => void handleDirectWhatsApp(lead)}
         onOpenAppointment={(lead) => setAppointmentLead(lead)}
+        onOpenSiteStudio={(lead) => setSiteStudioLead(lead)}
         onOpenCloseDeal={(lead) => setCloseDealLead(lead)}
         onOpenLostDeal={(lead) => setLostDealLead(lead)}
         onDeleteLeadPermanently={handleDeleteLeadPermanently}
@@ -2106,6 +2114,14 @@ export default function App() {
         onContactStarted={handleStartWhatsAppContact}
         onMessageCopied={handleMessageCopied}
       />
+
+      {siteStudioLead && (
+        <SiteStudio
+          lead={siteStudioLead}
+          currentUser={currentUser}
+          onClose={() => setSiteStudioLead(null)}
+        />
+      )}
 
       <QuickAppointmentModal
         lead={appointmentLead}
