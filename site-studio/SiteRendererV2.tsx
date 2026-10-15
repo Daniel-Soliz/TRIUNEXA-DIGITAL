@@ -23,6 +23,22 @@ type RendererProps = {
   forceAllPages?: boolean;
 };
 
+function contrastText(background: string) {
+  const hex = String(background || '').trim();
+  const normalized =
+    /^#[0-9a-f]{3}$/i.test(hex)
+      ? '#' + hex.slice(1).split('').map((part) => part + part).join('')
+      : hex;
+  const match = normalized.match(/^#([0-9a-f]{6})$/i);
+  if (!match) return '#FFFFFF';
+  const value = match[1];
+  const r = Number.parseInt(value.slice(0, 2), 16);
+  const g = Number.parseInt(value.slice(2, 4), 16);
+  const b = Number.parseInt(value.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.68 ? '#111315' : '#FFFFFF';
+}
+
 function radiusClass(radius: SiteSpecV2['tokens']['radius']) {
   if (radius === 'sharp') return 'rounded-none';
   if (radius === 'soft') return 'rounded-xl';
@@ -51,24 +67,32 @@ function Action({
   spec,
   onPage,
   secondary = false,
+  invert = false,
 }: {
   action?: SiteAction;
   spec: SiteSpecV2;
   onPage: (id: string) => void;
   secondary?: boolean;
+  invert?: boolean;
 }) {
   if (!action) return null;
-  const style = secondary
+  const style = invert
     ? {
-        color: spec.tokens.colors.text,
-        borderColor: spec.tokens.colors.border,
-        background: 'transparent',
+        color: spec.tokens.colors.primary,
+        borderColor: contrastText(spec.tokens.colors.primary),
+        background: contrastText(spec.tokens.colors.primary),
       }
-    : {
-        color: '#fff',
-        borderColor: spec.tokens.colors.primary,
-        background: spec.tokens.colors.primary,
-      };
+    : secondary
+      ? {
+          color: spec.tokens.colors.text,
+          borderColor: spec.tokens.colors.border,
+          background: 'transparent',
+        }
+      : {
+          color: contrastText(spec.tokens.colors.primary),
+          borderColor: spec.tokens.colors.primary,
+          background: spec.tokens.colors.primary,
+        };
   const className =
     'inline-flex min-h-11 items-center justify-center gap-2 border px-5 py-3 text-sm font-bold transition hover:-translate-y-0.5 ' +
     radiusClass(spec.tokens.radius);
@@ -405,7 +429,7 @@ function Services({
             <div className="text-[10px] font-black uppercase tracking-[.2em] text-white/60">Destaque</div>
             <h2 className="mt-4 text-3xl font-black sm:text-5xl">{String(first?.title || first?.name || block.title || '')}</h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-white/75">{String(first?.description || block.body || '')}</p>
-            <div className="mt-7"><Action action={block.primaryAction} spec={spec} onPage={onPage} secondary /></div>
+            <div className="mt-7"><Action action={block.primaryAction} spec={spec} onPage={onPage} invert /></div>
           </article>
           <div className="grid gap-4">
             {rest.map((item: any, index) => (
@@ -641,15 +665,31 @@ function CTA({
         style={
           minimal
             ? { background: p.surface, borderColor: p.border }
-            : { background: p.primary, color: '#fff' }
+            : { background: p.primary, color: contrastText(p.primary) }
         }
       >
         <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
             <h2 className="text-3xl font-black sm:text-4xl" style={{ fontFamily: spec.tokens.typography.display }}>{block.title}</h2>
-            {block.body && <p className={`mt-3 max-w-2xl text-sm leading-6 ${minimal ? '' : 'text-white/75'}`} style={minimal ? { color: p.muted } : undefined}>{block.body}</p>}
+            {block.body && (
+              <p
+                className="mt-3 max-w-2xl text-sm leading-6"
+                style={
+                  minimal
+                    ? { color: p.muted }
+                    : {
+                        color:
+                          contrastText(p.primary) === '#FFFFFF'
+                            ? 'rgba(255,255,255,.76)'
+                            : 'rgba(17,19,21,.72)',
+                      }
+                }
+              >
+                {block.body}
+              </p>
+            )}
           </div>
-          <Action action={block.primaryAction} spec={spec} onPage={onPage} secondary={!minimal} />
+          <Action action={block.primaryAction} spec={spec} onPage={onPage} secondary={minimal} invert={!minimal} />
         </div>
       </div>
     </section>
@@ -678,10 +718,22 @@ function Contact({
   return (
     <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
       <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[1.05fr_.95fr]">
-        <div className={`p-7 sm:p-10 ${radius}`} style={{ background: p.primary, color: '#fff' }}>
+        <div className={`p-7 sm:p-10 ${radius}`} style={{ background: p.primary, color: contrastText(p.primary) }}>
           <div className="text-[10px] font-black uppercase tracking-[.18em] text-white/60">{block.eyebrow || 'Contato'}</div>
           <h2 className="mt-3 text-4xl font-black tracking-tight" style={{ fontFamily: spec.tokens.typography.display }}>{block.title || 'Fale com a equipe'}</h2>
-          {block.body && <p className="mt-3 text-sm leading-7 text-white/75">{block.body}</p>}
+          {block.body && (
+            <p
+              className="mt-3 text-sm leading-7"
+              style={{
+                color:
+                  contrastText(p.primary) === '#FFFFFF'
+                    ? 'rgba(255,255,255,.76)'
+                    : 'rgba(17,19,21,.72)',
+              }}
+            >
+              {block.body}
+            </p>
+          )}
           <div className="mt-6">
             <Action action={block.primaryAction} spec={spec} onPage={onPage} secondary />
           </div>
@@ -907,8 +959,8 @@ export function SiteRendererV2({
               })}
               target="_blank"
               rel="noreferrer"
-              className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-black text-white md:ml-2"
-              style={{ background: p.primary }}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-black md:ml-2"
+              style={{ background: p.primary, color: contrastText(p.primary) }}
             >
               <MessageCircle className="h-3.5 w-3.5" />
               WhatsApp
