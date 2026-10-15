@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Lead, User } from './crm';
 import { supabase } from './supabaseApi';
+import { toJpeg } from 'html-to-image';
 import { SiteRendererV2 } from './site-studio/SiteRendererV2';
 import {
   adaptLegacySiteSpec,
@@ -176,7 +177,11 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
   const [directionOpen, setDirectionOpen] = useState(true);
   const [previewFullscreen, setPreviewFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visualReviewing, setVisualReviewing] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const desktopReviewRef = useRef<HTMLDivElement | null>(null);
+  const mobileReviewRef = useRef<HTMLDivElement | null>(null);
+  const visualReviewAttemptedRef = useRef<string | null>(null);
 
   const currentSpec = useMemo(() => asV2(project?.site_spec), [project?.site_spec]);
   const quality = project?.quality_report as QualityReport | undefined;
@@ -354,6 +359,136 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
       stopRunSubscription();
     };
   }, [lead.id, loadProject, loadVersions, loadLatestRun, stopRunSubscription, watchRun]);
+
+  const waitForImages = async (node: HTMLElement) => {
+    const images = Array.from(node.querySelectorAll('img'));
+    await Promise.all(
+      images.map(
+        (image) =>
+          new Promise<void>((resolve) => {
+            if (image.complete) {
+              resolve();
+              return;
+            }
+            const done = () => resolve();
+            image.addEventListener('load', done, { once: true });
+            image.addEventListener('error', done, { once: true });
+            window.setTimeout(done, 2500);
+          })
+      )
+    );
+  };
+
+  const captureReviewNode = async (node: HTMLElement, viewport: string) => {
+    await waitForImages(node);
+    let dataUrl = await toJpeg(node, {
+      quality: 0.68,
+      pixelRatio: 0.55,
+      cacheBust: true,
+      backgroundColor: '#ffffff',
+    });
+
+    if (dataUrl.length > 4_300_000) {
+      dataUrl = await toJpeg(node, {
+        quality: 0.48,
+        pixelRatio: 0.4,
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+      });
+    }
+
+    return { viewport, dataUrl };
+  };
+
+  const collectLayoutMetrics = (node: HTMLElement) =>
+    Array.from(node.querySelectorAll<HTMLElement>('[data-site-block-type]')).map((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        type: element.dataset.siteBlockType || '',
+        variant: element.dataset.siteBlockVariant || '',
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      };
+    });
+
+  const startVisualReview = useCallback(
+    async (projectId: string, versionId: string) => {
+      if (!desktopReviewRef.current || !mobileReviewRef.current) return;
+      setVisualReviewing(true);
+
+      try {
+        await new Promise((resolve) => window.setTimeout(resolve, 900));
+
+        const screenshots = await Promise.all([
+          captureReviewNode(desktopReviewRef.current, 'desktop-1440'),
+          captureReviewNode(mobileReviewRef.current, 'mobile-390'),
+        ]);
+
+        const metrics = {
+          desktop: collectLayoutMetrics(desktopReviewRef.current),
+          mobile: collectLayoutMetrics(mobileReviewRef.current),
+        };
+
+        const { data, error: invokeError } = await supabase.functions.invoke('truinexa-site-studio', {
+          body: {
+            action: 'start_visual_review',
+            projectId,
+            versionId,
+            screenshots,
+            metrics,
+          },
+        });
+
+        if (invokeError || data?.error) {
+          throw new Error(
+            data?.message || invokeError?.message || 'Não foi possível iniciar a revisão visual.'
+          );
+        }
+
+        if (data?.runId) {
+          await watchRun(data.runId, projectId);
+        }
+      } catch (reviewError) {
+        console.error('Visual review failed:', reviewError);
+      } finally {
+        setVisualReviewing(false);
+      }
+    },
+    [watchRun]
+  );
+
+  useEffect(() => {
+    const versionId = project?.active_version_id;
+    const visualReviewed = Boolean((project?.quality_report as any)?.visualReview?.reviewedAt);
+
+    if (
+      !versionId ||
+      !project ||
+      !currentSpec ||
+      !integrations.openai ||
+      project.generation_mode !== 'openai' ||
+      running ||
+      visualReviewed ||
+      visualReviewing ||
+      visualReviewAttemptedRef.current === versionId
+    ) {
+      return;
+    }
+
+    visualReviewAttemptedRef.current = versionId;
+    const timer = window.setTimeout(() => {
+      void startVisualReview(project.id, versionId);
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    currentSpec,
+    integrations.openai,
+    project,
+    running,
+    startVisualReview,
+    visualReviewing,
+  ]);
 
   const startGeneration = async (directionId?: string) => {
     setError(null);
@@ -630,13 +765,27 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
         <div className={`grid min-h-0 flex-1 ${previewFullscreen ? 'grid-cols-1' : 'lg:grid-cols-[350px_minmax(0,1fr)]'}`}>
           {!previewFullscreen && (
             <aside className="overflow-y-auto border-r border-white/[0.07] bg-[#101010] p-4">
-              <div className="rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.06] p-4">
-                <div className="flex items-center gap-2 text-xs font-black text-indigo-300">
+              <div
+                className={`rounded-2xl border p-4 ${
+                  integrations.openai
+                    ? 'border-emerald-500/25 bg-emerald-500/[0.06]'
+                    : 'border-amber-500/25 bg-amber-500/[0.06]'
+                }`}
+              >
+                <div
+                  className={`flex items-center gap-2 text-xs font-black ${
+                    integrations.openai ? 'text-emerald-300' : 'text-amber-300'
+                  }`}
+                >
                   <WandSparkles className="h-4 w-4" />
-                  Motor inteligente de composição
+                  {integrations.openai
+                    ? `IA avançada • ${modelName || 'GPT-6.1 Sol'}`
+                    : 'Modo estruturado • sem GPT conectado'}
                 </div>
                 <p className="mt-2 text-[11px] leading-5 text-slate-400">
-                  O V2 pesquisa fontes permitidas, cria briefing, produz três direções visuais e monta páginas por componentes. Não executa HTML ou JavaScript gerado por modelo.
+                  {integrations.openai
+                    ? 'Pesquisa, direção de arte, arquitetura, crítica e revisão visual real em desktop/mobile antes da versão final.'
+                    : 'Este modo usa regras e componentes seguros. Ele não possui o mesmo nível criativo do ChatGPT até uma chave OpenAI ser configurada no backend.'}
                 </p>
               </div>
 
@@ -647,7 +796,7 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
                   className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 text-sm font-black text-white hover:bg-indigo-500"
                 >
                   <Sparkles className="h-4 w-4" />
-                  Analisar e gerar site
+                  {integrations.openai ? 'Gerar com IA avançada' : 'Gerar em modo estruturado'}
                 </button>
               )}
 
@@ -658,7 +807,7 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
                   className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 text-sm font-bold text-white hover:bg-white/[0.08]"
                 >
                   <RefreshCw className="h-4 w-4" />
-                  Nova análise completa
+                  {integrations.openai ? 'Regenerar com IA avançada' : 'Regenerar modo estruturado'}
                 </button>
               )}
 
@@ -767,6 +916,22 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
                           </div>
                         ))}
                       </div>
+                      {(quality as any)?.visualReview?.reviewedAt && (
+                        <div className="mt-3 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.05] p-2.5">
+                          <div className="text-[9px] font-black uppercase tracking-[.12em] text-emerald-400">
+                            Revisão visual concluída
+                          </div>
+                          <div className="mt-1 text-[9px] leading-4 text-slate-500">
+                            Desktop e mobile foram inspecionados pela IA antes desta versão.
+                          </div>
+                        </div>
+                      )}
+                      {visualReviewing && (
+                        <div className="mt-3 flex items-center gap-2 text-[9px] text-indigo-300">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          IA olhando o site renderizado em desktop e mobile...
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -776,7 +941,7 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
                       <div className="flex justify-between gap-3">
                         <span className="text-slate-500">OpenAI</span>
                         <span className={integrations.openai ? 'text-emerald-400' : 'text-amber-400'}>
-                          {integrations.openai ? `Ativo • ${modelName || 'modelo configurado'}` : 'Não configurado'}
+                          {integrations.openai ? `Ativo • ${modelName || 'GPT-6.1 Sol'} + revisão visual` : 'Não configurado • sem IA generativa'}
                         </span>
                       </div>
                       <div className="flex justify-between gap-3">
@@ -926,6 +1091,27 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
           </main>
         </div>
       </div>
+
+      {currentSpec && integrations.openai && project?.generation_mode === 'openai' && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'fixed',
+            left: '-20000px',
+            top: 0,
+            width: 1500,
+            pointerEvents: 'none',
+            zIndex: -1,
+          }}
+        >
+          <div ref={desktopReviewRef} style={{ width: 1440, background: '#fff' }}>
+            <SiteRendererV2 spec={currentSpec} />
+          </div>
+          <div ref={mobileReviewRef} style={{ width: 390, background: '#fff', marginTop: 40 }}>
+            <SiteRendererV2 spec={currentSpec} />
+          </div>
+        </div>
+      )}
 
       {currentSpec && (
         <div className="site-print-document">
