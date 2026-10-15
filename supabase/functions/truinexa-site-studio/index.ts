@@ -2336,7 +2336,18 @@ async function processGeneration(admin: any, run: any, project: any, lead: any, 
       try {
         aiStudio = await optionalAIStudioPlan(lead, research, baselineBriefing, recentDesignFingerprints);
       } catch (error) {
-        console.error("Advanced AI fallback:", error);
+        console.error("Advanced AI unavailable:", error);
+        // Never label a simple fallback as premium AI generation. Keep the
+        // previously saved site/version untouched and surface the real failure.
+        throw new Error(
+          "A IA criativa não conseguiu concluir o plano. Verifique a configuração, créditos e logs da OpenAI. " +
+          "A geração foi interrompida para evitar um site genérico; sua versão anterior foi preservada."
+        );
+      }
+      if (!aiStudio?.plan?.pages?.length) {
+        throw new Error(
+          "A IA não retornou um plano de páginas válido. Nenhum template automático foi publicado."
+        );
       }
     }
 
