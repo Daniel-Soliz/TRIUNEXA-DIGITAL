@@ -593,6 +593,7 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generationStep, setGenerationStep] = useState(0);
   const [publishing, setPublishing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -627,26 +628,47 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
     return `${base}?demo=${project.public_token}`;
   }, [project]);
 
+  const generationSteps = [
+    'Lendo dados do CRM',
+    'Analisando site oficial',
+    'Localizando logo e imagens',
+    'Validando localização e avaliações',
+    'Definindo estrutura do segmento',
+    'Montando páginas do site',
+    'Revisando contatos e publicação',
+  ];
+
   const handleGenerate = async () => {
     setGenerating(true);
+    setGenerationStep(0);
     setError(null);
-    const { data, error: invokeError } = await supabase.functions.invoke('truinexa-site-studio', {
-      body: {
-        action: 'generate',
-        leadId: lead.id,
-        projectId: project?.id || null,
-        templateKey: template,
-      },
-    });
 
-    if (invokeError) {
-      setError(invokeError.message);
-    } else if (data?.error) {
-      setError(data.message || 'Não foi possível gerar a demonstração.');
-    } else if (data?.project) {
-      setProject(data.project as SiteProject);
+    const timer = window.setInterval(() => {
+      setGenerationStep((current) => Math.min(current + 1, generationSteps.length - 1));
+    }, 2200);
+
+    try {
+      const { data, error: invokeError } = await supabase.functions.invoke('truinexa-site-studio', {
+        body: {
+          action: 'generate',
+          leadId: lead.id,
+          projectId: project?.id || null,
+          templateKey: template,
+        },
+      });
+
+      if (invokeError) {
+        setError(invokeError.message);
+      } else if (data?.error) {
+        setError(data.message || 'Não foi possível gerar a demonstração.');
+      } else if (data?.project) {
+        setGenerationStep(generationSteps.length - 1);
+        setProject(data.project as SiteProject);
+      }
+    } finally {
+      window.clearInterval(timer);
+      setGenerating(false);
     }
-    setGenerating(false);
   };
 
   const togglePublish = async () => {
@@ -685,10 +707,33 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
   return (
     <div className="fixed inset-0 z-[70] bg-[#080808] text-white">
       <style>{`
+        .site-print-all { display: none; }
         @media print {
+          @page { margin: 0; size: A4 portrait; }
           body * { visibility: hidden !important; }
           .site-print-root, .site-print-root * { visibility: visible !important; }
-          .site-print-root { position: absolute !important; inset: 0 !important; width: 100% !important; min-height: 100vh !important; }
+          .site-print-root {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            min-height: 100vh !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .site-screen { display: none !important; }
+          .site-print-all { display: block !important; }
+          .site-print-page {
+            display: block !important;
+            min-height: 100vh !important;
+            break-after: page;
+            page-break-after: always;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .site-print-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
         }
       `}</style>
 
@@ -798,11 +843,49 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
               type="button"
               disabled={generating}
               onClick={() => void handleGenerate()}
-              className="mt-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 text-sm font-black text-white hover:bg-indigo-500 disabled:opacity-50"
+              className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 text-sm font-black text-white hover:bg-indigo-500 disabled:opacity-70"
             >
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : project ? <RefreshCw className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-              {generating ? 'Montando site...' : project ? 'Regenerar site' : 'Gerar site'}
+              <span>{generating ? generationSteps[generationStep] : project ? 'Regenerar análise + site' : 'Analisar e gerar site'}</span>
             </button>
+
+            {generating && (
+              <div className="mt-3 rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.05] p-4">
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[.14em] text-indigo-300">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Análise profunda em andamento
+                </div>
+                <div className="mt-3 space-y-2">
+                  {generationSteps.map((step, index) => (
+                    <div key={step} className="flex items-center gap-2 text-[10px]">
+                      <span
+                        className={`grid h-5 w-5 shrink-0 place-items-center rounded-full ${
+                          index < generationStep
+                            ? 'bg-emerald-500/15 text-emerald-400'
+                            : index === generationStep
+                              ? 'bg-indigo-500/20 text-indigo-300'
+                              : 'bg-white/[0.04] text-slate-700'
+                        }`}
+                      >
+                        {index < generationStep ? (
+                          <Check className="h-3 w-3" />
+                        ) : index === generationStep ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          index + 1
+                        )}
+                      </span>
+                      <span className={index <= generationStep ? 'text-slate-300' : 'text-slate-700'}>
+                        {step}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-[9px] leading-4 text-slate-600">
+                  A TRUINEXA prioriza precisão. Quando uma fonte externa demora, a geração pode levar alguns segundos a mais.
+                </p>
+              </div>
+            )}
 
             {error && (
               <div className="mt-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-3 text-[11px] leading-5 text-rose-300">
@@ -830,18 +913,72 @@ export function SiteStudio({ lead, currentUser: _currentUser, onClose }: SiteStu
                   </div>
                 </div>
 
+                {project.analysis?.digitalMetrics && (
+                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4">
+                    <div className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-600">
+                      Métricas TRUINEXA
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {[
+                        ['Presença', project.analysis.digitalMetrics.presence],
+                        ['Conversão', project.analysis.digitalMetrics.conversion],
+                        ['Confiança', project.analysis.digitalMetrics.trust],
+                      ].map(([label, value]) => (
+                        <div key={String(label)} className="rounded-xl bg-white/[0.04] p-2.5 text-center">
+                          <div className="font-mono text-lg font-black text-white">{Number(value || 0)}</div>
+                          <div className="mt-0.5 text-[8px] uppercase tracking-wider text-slate-600">{label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-[9px] leading-4 text-slate-600">
+                      Índices internos calculados a partir da presença pública encontrada, canais de contato e ativos verificados.
+                    </p>
+                  </div>
+                )}
+
+                {project.analysis?.verifiedAssets && (
+                  <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4">
+                    <div className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-600">
+                      Fontes e ativos verificados
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-[9px]">
+                      {[
+                        ['Site oficial', project.analysis.verifiedAssets.website],
+                        ['Logo', project.analysis.verifiedAssets.logo],
+                        ['Instagram', project.analysis.verifiedAssets.instagram],
+                        ['Google Places', project.analysis.verifiedAssets.googlePlaces],
+                      ].map(([label, ok]) => (
+                        <div key={String(label)} className="flex items-center justify-between gap-2 rounded-lg bg-white/[0.035] px-2.5 py-2">
+                          <span className="text-slate-400">{label}</span>
+                          <span className={ok ? 'text-emerald-400' : 'text-slate-700'}>{ok ? '✓' : '—'}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 text-[9px] text-slate-600">
+                      {Number(project.analysis.verifiedAssets.websiteImages || 0)} imagens do site • {Number(project.analysis.verifiedAssets.googlePhotos || 0)} fotos Places • {Number(project.analysis.verifiedAssets.googleReviewCount || 0)} avaliações
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4">
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-[.14em] text-slate-600">Motor</div>
                       <div className="mt-1 text-xs font-semibold text-slate-300">
-                        {project.generation_mode === 'openai' ? 'IA conectada' : 'Gerador inteligente'}
+                        {project.generation_mode === 'openai' ? 'IA conectada' : 'Pesquisa + gerador por segmento'}
                       </div>
                     </div>
                     <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-[9px] font-bold text-emerald-400">
                       Ativo
                     </span>
                   </div>
+                  {project.analysis?.integrations && (
+                    <div className="mt-3 space-y-1.5 text-[9px]">
+                      <div className="flex justify-between"><span className="text-slate-600">Google Places</span><span className={project.analysis.integrations.googlePlacesConfigured ? 'text-emerald-400' : 'text-amber-400'}>{project.analysis.integrations.googlePlacesConfigured ? 'Conectado' : 'Aguardando chave'}</span></div>
+                      <div className="flex justify-between"><span className="text-slate-600">Instagram oficial</span><span className="text-amber-400">Aguardando Meta API</span></div>
+                      <div className="flex justify-between"><span className="text-slate-600">Modelo generativo externo</span><span className="text-amber-400">Aguardando chave servidor</span></div>
+                    </div>
+                  )}
                 </div>
 
                 {project.published && publicUrl && (
