@@ -66,6 +66,11 @@ import {
 import { crmFetch, loadCRMState, subscribeToCRMChanges, supabase } from './supabaseApi';
 import { InstallAppButton } from './InstallAppButton';
 import { TeamChat } from './TeamChat';
+import {
+  buildWhatsAppUrl,
+  generateProspectingMessage,
+  sanitizeWhatsAppNumber,
+} from './prospecting';
 
 const SiteStudio = React.lazy(() =>
   import('./SiteStudio').then((module) => ({ default: module.SiteStudio }))
@@ -604,24 +609,23 @@ export default function App() {
     });
   };
 
-  const openRealWhatsApp = (lead: Lead) => {
-    const rawPhone = String(lead.whatsapp || lead.phone || '').replace(/\D/g, '');
-    const phone = rawPhone.startsWith('55') ? rawPhone : `55${rawPhone}`;
-
-    if (!/^55\d{10,11}$/.test(phone)) {
-      window.alert('Este cliente não possui um WhatsApp válido.');
+  const openRealWhatsApp = (lead: Lead, message: string) => {
+    const url = buildWhatsAppUrl(lead.whatsapp || lead.phone || '', message);
+    if (!url) {
+      window.alert('Este cliente não possui um celular com WhatsApp válido.');
       return;
     }
-
-    const message =
-      lead.whatsappMessage?.trim() ||
-      `Olá, tudo bem? Sou ${crmState?.config.senderName || 'Daniel Soliz'}, da ${crmState?.config.brandName || 'DS Digital'}. Encontrei a ${lead.company} e identifiquei uma oportunidade para melhorar a presença digital e facilitar o contato com novos clientes. Posso te mostrar uma ideia rápida?`;
-
-    window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    // Same-tab redirect works after the CRM contact-status API returns.
+    // The text remains editable in WhatsApp; no automatic message is sent.
+    window.location.href = url;
   };
 
   const handleDirectWhatsApp = async (lead: Lead) => {
-    if (!currentUser) return;
+    if (!currentUser || !crmState) return;
+    if (!sanitizeWhatsAppNumber(lead.whatsapp || lead.phone || '')) {
+      window.alert('Este cliente não possui um celular com WhatsApp válido.');
+      return;
+    }
 
     let targetLead = lead;
 
@@ -637,13 +641,13 @@ export default function App() {
       return;
     }
 
-    const message =
-      targetLead.whatsappMessage?.trim() ||
-      `Olá, tudo bem? Sou ${crmState?.config.senderName || 'Daniel Soliz'}, da ${crmState?.config.brandName || 'DS Digital'}. Encontrei a ${targetLead.company} e identifiquei uma oportunidade para melhorar a presença digital e facilitar o contato com novos clientes. Posso te mostrar uma ideia rápida?`;
+    // All CRM quick-contact buttons share the same commercial website pitch.
+    // Saved/ad-hoc messages can still be selected or edited in "Roteiros".
+    const message = generateProspectingMessage(targetLead, crmState.config);
 
     try {
       const startedLead = await handleStartWhatsAppContact(targetLead.id, message);
-      openRealWhatsApp(startedLead);
+      openRealWhatsApp(startedLead, message);
     } catch (error) {
       window.alert(
         error instanceof Error
