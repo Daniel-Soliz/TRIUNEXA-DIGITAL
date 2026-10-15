@@ -18,6 +18,8 @@ export type SiteBlockType =
   | 'projects'
   | 'team'
   | 'faq'
+  | 'form'
+  | 'map'
   | 'cta'
   | 'contact';
 
