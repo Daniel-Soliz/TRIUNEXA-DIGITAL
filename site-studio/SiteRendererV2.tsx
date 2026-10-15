@@ -796,7 +796,15 @@ export function SiteRendererV2({
   const renderBlock = (block: SiteBlockV2) => {
     const Component = componentRegistry[block.type];
     if (!Component) return null;
-    return <Component key={block.id} block={block} spec={spec} onPage={navigate} />;
+    return (
+      <div
+        key={block.id}
+        data-site-block-type={block.type}
+        data-site-block-variant={block.variant}
+      >
+        <Component block={block} spec={spec} onPage={navigate} />
+      </div>
+    );
   };
 
   const navStyle = String(
@@ -929,6 +937,7 @@ export function SiteRendererV2({
       <AnimatePresence mode="wait" initial={false}>
         <motion.main
           key={page?.id}
+          data-site-page={page?.id}
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
