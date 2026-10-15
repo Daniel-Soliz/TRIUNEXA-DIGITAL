@@ -44,6 +44,12 @@ for (const demo of demos) {
       }));
       expect(overflow.width).toBeLessThanOrEqual(overflow.viewport + 2);
 
+      await page.waitForTimeout(350);
+      await page.screenshot({
+        path: testInfo.outputPath(`${demo.key}-${width}.png`),
+        fullPage: true,
+      });
+
       const navButton = page
         .locator('header button:visible')
         .filter({ hasText: demo.targetLabel })
@@ -57,11 +63,7 @@ for (const demo of demos) {
 
       await page.goBack();
       await expect(page.locator('[data-site-page="home"]')).toBeVisible();
-
-      await page.screenshot({
-        path: testInfo.outputPath(`${demo.key}-${width}.png`),
-        fullPage: true,
-      });
+      await page.waitForTimeout(300);
     });
   }
 }
