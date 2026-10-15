@@ -224,6 +224,92 @@ function Hero({
     </div>
   );
 
+  if (block.variant === 'minimal-type') {
+    return (
+      <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-6xl">
+            {block.eyebrow && (
+              <div className="mb-5 text-[10px] font-black uppercase tracking-[.22em]" style={{ color: p.accent }}>
+                {block.eyebrow}
+              </div>
+            )}
+            <h1
+              className="text-[clamp(3rem,9vw,8rem)] font-black leading-[.86] tracking-[-.065em]"
+              style={{ fontFamily: spec.tokens.typography.display }}
+            >
+              {block.title}
+            </h1>
+            <div className="mt-7 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+              <p className="max-w-2xl text-sm leading-7 sm:text-base" style={{ color: p.muted }}>{block.body}</p>
+              <div className="flex flex-wrap gap-3">
+                <Action action={block.primaryAction} spec={spec} onPage={onPage} />
+                <Action action={block.secondaryAction} spec={spec} onPage={onPage} secondary />
+              </div>
+            </div>
+          </div>
+          {media[0] && (
+            <div className={`mt-10 overflow-hidden ${radius}`}>
+              <Picture asset={media[0]} className="aspect-[16/7] w-full object-cover" treatment={spec.tokens.imageTreatment} />
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (block.variant === 'magazine') {
+    return (
+      <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+        <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-12 lg:items-stretch">
+          <div className="flex flex-col justify-between py-4 lg:col-span-5 lg:py-8">
+            {commonCopy}
+            <div className="mt-10 hidden text-[10px] font-black uppercase tracking-[.2em] lg:block" style={{ color: p.muted }}>
+              {spec.brand.segment}
+            </div>
+          </div>
+          <div className="grid min-h-[520px] grid-cols-2 grid-rows-5 gap-3 lg:col-span-7">
+            <div className={`col-span-2 row-span-3 overflow-hidden ${radius}`}>
+              <Picture asset={media[0]} className="h-full w-full object-cover" treatment={spec.tokens.imageTreatment} />
+            </div>
+            <div className={`row-span-2 overflow-hidden ${radius}`} style={{ background: p.surface }}>
+              <Picture asset={media[1] || media[0]} className="h-full w-full object-cover" treatment={spec.tokens.imageTreatment} />
+            </div>
+            <div className={`row-span-2 border p-5 sm:p-7 ${radius}`} style={{ background: p.surface, borderColor: p.border }}>
+              <div className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: p.accent }}>Direção</div>
+              <p className="mt-3 text-sm leading-6" style={{ color: p.muted }}>
+                {block.body}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (block.variant === 'layered') {
+    return (
+      <section className={`px-4 ${sectionSpacing(spec.tokens.density)} sm:px-6`}>
+        <div className="mx-auto max-w-7xl">
+          <div className={`relative min-h-[560px] overflow-hidden ${radius}`} style={{ background: p.surface }}>
+            <Picture asset={media[0]} className="absolute inset-0 h-full w-full object-cover" treatment={spec.tokens.imageTreatment} />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/25 to-transparent" />
+            <div className="relative flex min-h-[560px] items-end p-5 sm:p-8 lg:p-12">
+              <div className={`w-full max-w-2xl border p-6 backdrop-blur-xl sm:p-8 ${radius}`} style={{ background: 'rgba(8,8,10,.72)', borderColor: 'rgba(255,255,255,.14)', color: '#fff' }}>
+                <div className="[&_p]:text-white/70">{commonCopy}</div>
+              </div>
+            </div>
+            {media[1] && (
+              <div className={`absolute right-5 top-5 hidden h-44 w-32 overflow-hidden border border-white/20 shadow-2xl sm:block lg:h-64 lg:w-48 ${radius}`}>
+                <Picture asset={media[1]} className="h-full w-full object-cover" treatment={spec.tokens.imageTreatment} />
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   if (block.variant === 'fullscreen') {
     return (
       <section className="relative min-h-[68vh] overflow-hidden sm:min-h-[76vh]">
@@ -316,6 +402,38 @@ function Intro({ block, spec }: { block: SiteBlockV2; spec: SiteSpecV2 }) {
   const radius = radiusClass(spec.tokens.radius);
   const items = block.items || [];
 
+  if (block.variant === 'statement') {
+    return (
+      <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+        <div className="mx-auto max-w-7xl border-y py-10 sm:py-16" style={{ borderColor: p.border }}>
+          <div className="grid gap-8 lg:grid-cols-[1.35fr_.65fr] lg:items-end">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[.22em]" style={{ color: p.accent }}>
+                {block.eyebrow || 'Perspectiva'}
+              </div>
+              <h2
+                className="mt-4 max-w-5xl text-4xl font-black leading-[1.02] tracking-[-.045em] sm:text-6xl"
+                style={{ fontFamily: spec.tokens.typography.display }}
+              >
+                {block.title}
+              </h2>
+            </div>
+            <p className="text-sm leading-7" style={{ color: p.muted }}>{block.body}</p>
+          </div>
+          {items.length > 0 && (
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {items.slice(0, 3).map((item: any, index) => (
+                <div key={index} className="border-l pl-4" style={{ borderColor: p.accent }}>
+                  <div className="text-sm font-bold">{String(item.text || item.title || '')}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   if (block.variant === 'editorial') {
     return (
       <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
@@ -389,6 +507,66 @@ function Services({
   const items = block.items || [];
   const media = block.media || [];
   const radius = radiusClass(spec.tokens.radius);
+
+  if (block.variant === 'bento') {
+    const [first, ...rest] = items;
+    return (
+      <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <div className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: p.accent }}>{block.eyebrow || 'Serviços'}</div>
+            <h2 className="mt-3 text-3xl font-black sm:text-5xl" style={{ fontFamily: spec.tokens.typography.display }}>{block.title}</h2>
+            {block.body && <p className="mt-4 max-w-2xl text-sm leading-7" style={{ color: p.muted }}>{block.body}</p>}
+          </div>
+          <div className="mt-8 grid gap-4 lg:grid-cols-12">
+            {first && (
+              <article className={`overflow-hidden border lg:col-span-7 ${radius}`} style={{ background: p.surface, borderColor: p.border }}>
+                {media[0] && <Picture asset={media[0]} className="aspect-[16/8] w-full object-cover" treatment={spec.tokens.imageTreatment} />}
+                <div className="p-6 sm:p-8">
+                  <div className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: p.accent }}>01</div>
+                  <h3 className="mt-3 text-2xl font-black sm:text-3xl">{String((first as any).title || (first as any).name || '')}</h3>
+                  <p className="mt-3 text-sm leading-7" style={{ color: p.muted }}>{String((first as any).description || '')}</p>
+                </div>
+              </article>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-1">
+              {rest.map((item: any, index) => (
+                <article key={index} className={`border p-5 sm:p-6 ${radius}`} style={{ background: index % 2 ? p.surfaceAlt : p.surface, borderColor: p.border }}>
+                  <div className="text-[10px] font-black" style={{ color: p.accent }}>{String(index + 2).padStart(2, '0')}</div>
+                  <h3 className="mt-3 text-xl font-black">{String(item.title || item.name || '')}</h3>
+                  <p className="mt-2 text-sm leading-6" style={{ color: p.muted }}>{String(item.description || '')}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (block.variant === 'timeline') {
+    return (
+      <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+        <div className="mx-auto max-w-6xl">
+          <div className="max-w-2xl">
+            <div className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: p.accent }}>{block.eyebrow || 'Serviços'}</div>
+            <h2 className="mt-3 text-3xl font-black sm:text-5xl" style={{ fontFamily: spec.tokens.typography.display }}>{block.title}</h2>
+          </div>
+          <div className="mt-9">
+            {items.map((item: any, index) => (
+              <article key={index} className="grid gap-4 border-t py-6 sm:grid-cols-[90px_1fr] sm:py-8" style={{ borderColor: p.border }}>
+                <div className="font-mono text-sm" style={{ color: p.accent }}>{String(index + 1).padStart(2, '0')}</div>
+                <div className="grid gap-3 md:grid-cols-[.8fr_1.2fr]">
+                  <h3 className="text-xl font-black">{String(item.title || item.name || '')}</h3>
+                  <p className="text-sm leading-7" style={{ color: p.muted }}>{String(item.description || '')}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (block.variant === 'editorial-list') {
     return (
@@ -500,6 +678,31 @@ function Gallery({ block, spec }: { block: SiteBlockV2; spec: SiteSpecV2 }) {
   const [index, setIndex] = useState(0);
 
   if (!media.length) return null;
+
+  if (block.variant === 'editorial-grid') {
+    return (
+      <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-5 lg:grid-cols-[.45fr_1fr] lg:items-end">
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: p.accent }}>Seleção visual</div>
+              <h2 className="mt-3 text-3xl font-black sm:text-5xl" style={{ fontFamily: spec.tokens.typography.display }}>{block.title || 'Galeria'}</h2>
+            </div>
+            <div className="grid auto-rows-[130px] grid-cols-2 gap-3 sm:auto-rows-[190px] md:grid-cols-3">
+              {media.slice(0, 7).map((asset, idx) => (
+                <div
+                  key={asset.url + idx}
+                  className={`overflow-hidden ${radius} ${idx === 0 ? 'col-span-2 row-span-2' : idx === 3 ? 'row-span-2' : ''}`}
+                >
+                  <Picture asset={asset} className="h-full w-full object-cover" treatment={spec.tokens.imageTreatment} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   if (block.variant === 'carousel') {
     const current = media[index % media.length];
@@ -685,6 +888,24 @@ function CTA({
 }) {
   const p = spec.tokens.colors;
   const minimal = block.variant === 'minimal';
+
+  if (block.variant === 'split-cta') {
+    return (
+      <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
+        <div className={`mx-auto grid max-w-7xl overflow-hidden border lg:grid-cols-[1.2fr_.8fr] ${radiusClass(spec.tokens.radius)}`} style={{ borderColor: p.border }}>
+          <div className="p-7 sm:p-10 lg:p-12" style={{ background: p.surface }}>
+            <div className="text-[10px] font-black uppercase tracking-[.2em]" style={{ color: p.accent }}>Próximo passo</div>
+            <h2 className="mt-3 text-3xl font-black sm:text-5xl" style={{ fontFamily: spec.tokens.typography.display }}>{block.title}</h2>
+            {block.body && <p className="mt-4 max-w-2xl text-sm leading-7" style={{ color: p.muted }}>{block.body}</p>}
+          </div>
+          <div className="flex items-end p-7 sm:p-10 lg:p-12" style={{ background: p.primary, color: contrastText(p.primary) }}>
+            <Action action={block.primaryAction} spec={spec} onPage={onPage} invert />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className={`px-5 ${sectionSpacing(spec.tokens.density)} sm:px-8`}>
       <div
