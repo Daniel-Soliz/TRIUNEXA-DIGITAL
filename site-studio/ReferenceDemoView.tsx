@@ -15,5 +15,6 @@ export default function ReferenceDemoView({ demoKey }: { demoKey: string }) {
     );
   }
 
-  return <SiteRendererV2 spec={spec} publicMode />;
+  const printMode = new URLSearchParams(window.location.search).get('print') === '1';
+  return <SiteRendererV2 spec={spec} publicMode={!printMode} forceAllPages={printMode} />;
 }
