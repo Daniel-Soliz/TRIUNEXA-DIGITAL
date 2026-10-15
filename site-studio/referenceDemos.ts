@@ -226,7 +226,7 @@ export const referenceDemos: Record<string, SiteSpecV2> = {
           {
             id: 'build-hero',
             type: 'hero',
-            variant: 'editorial',
+            variant: 'magazine',
             eyebrow: 'Engenharia e construção',
             title: 'Estrutura para construir com clareza.',
             body: 'Uma demonstração institucional fictícia focada em confiança, processo e apresentação de projetos.',
@@ -275,7 +275,7 @@ export const referenceDemos: Record<string, SiteSpecV2> = {
           {
             id: 'build-services',
             type: 'services',
-            variant: 'editorial-list',
+            variant: 'timeline',
             eyebrow: 'Soluções',
             title: 'Capacidade apresentada sem excesso de ruído.',
             items: [
@@ -390,7 +390,7 @@ export const referenceDemos: Record<string, SiteSpecV2> = {
           {
             id: 'dental-hero',
             type: 'hero',
-            variant: 'asymmetric',
+            variant: 'layered',
             eyebrow: 'Odontologia com acolhimento',
             title: 'Cuidar do sorriso também é cuidar da experiência.',
             body: 'Uma demonstração fictícia com linguagem tranquila, hierarquia clara e foco em agendamento de avaliação.',
@@ -445,7 +445,7 @@ export const referenceDemos: Record<string, SiteSpecV2> = {
           {
             id: 'dental-services',
             type: 'services',
-            variant: 'spotlight',
+            variant: 'bento',
             eyebrow: 'Tratamentos',
             title: 'Cuidado organizado por necessidade.',
             items: [
